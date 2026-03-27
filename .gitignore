@@ -5,6 +5,9 @@ out/
 build/
 dist/
 
+#temp
+land
+
 # Turbo
 .turbo/
 
