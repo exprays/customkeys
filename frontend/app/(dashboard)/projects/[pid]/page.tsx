@@ -172,7 +172,9 @@ export default function ProjectPage() {
                     {env.name}
                   </div>
                   {env.is_protected && (
-                    <Lock size={14} className="text-yellow-500" title="Protected" />
+                    <span title="Protected">
+                      <Lock size={14} className="text-yellow-500" />
+                    </span>
                   )}
                 </div>
                 <div className="flex items-center justify-between">

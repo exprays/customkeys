@@ -35,10 +35,14 @@ export function Navbar() {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Button variant="ghost" size="sm">
-            Sign In
-          </Button>
-          <Button size="sm">Get Started</Button>
+          <Link href="/login">
+            <Button variant="ghost" size="sm">
+              Sign In
+            </Button>
+          </Link>
+          <Link href="/login">
+            <Button size="sm">Get Started</Button>
+          </Link>
         </div>
 
         {/* Mobile Menu Button */}
@@ -68,10 +72,14 @@ export function Navbar() {
               Changelog
             </Link>
             <div className="flex flex-col gap-2 pt-4 border-t border-border">
-              <Button variant="ghost" size="sm" className="justify-start">
-                Sign In
-              </Button>
-              <Button size="sm">Get Started</Button>
+              <Link href="/login" className="w-full">
+                <Button variant="ghost" size="sm" className="w-full justify-start">
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/login" className="w-full">
+                <Button size="sm" className="w-full">Get Started</Button>
+              </Link>
             </div>
           </div>
         </div>

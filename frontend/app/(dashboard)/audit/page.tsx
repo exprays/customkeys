@@ -121,13 +121,13 @@ export default function AuditPage() {
                         <span className="text-xs text-gray-400">{event.resource_type}</span>
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell">
-                        {meta?.key && (
+                        {meta && typeof meta.key === 'string' && (
                           <span className="text-xs font-mono text-gray-300 bg-gray-800 px-1.5 py-0.5 rounded">
-                            {String(meta.key)}
+                            {meta.key}
                           </span>
                         )}
-                        {meta?.project_name && (
-                          <span className="text-xs text-gray-400">{String(meta.project_name)}</span>
+                        {meta && typeof meta.project_name === 'string' && (
+                          <span className="text-xs text-gray-400">{meta.project_name}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
