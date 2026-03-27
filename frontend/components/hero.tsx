@@ -29,11 +29,11 @@ export function Hero() {
 
           {/* CTAs */}
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Button size="lg" className="gap-2">
+            <Button size="lg" className="gap-2 cursor-pointer">
               Start for free
               <ArrowRight className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="lg" className="gap-2">
+            <Button variant="outline" size="lg" className="gap-2 cursor-pointer">
               <Github className="h-4 w-4" />
               View on GitHub
             </Button>
