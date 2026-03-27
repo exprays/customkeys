@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "bin": {
-    "nan0": "./bin/nan0.js"
+    "nano": "./bin/nano.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
