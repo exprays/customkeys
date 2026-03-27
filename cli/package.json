@@ -1,10 +1,19 @@
 {
-  "name": "cli",
-  "version": "1.0.0",
-  "description": "",
+  "name": "@superxepic/nano-cli",
+  "version": "1.0.1",
+  "description": "Nano platform CLI",
   "main": "index.js",
   "bin": {
-    "nano": "./bin/nano.js"
+    "nano": "bin/nano.js"
+  },
+  "files": [
+    "bin"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

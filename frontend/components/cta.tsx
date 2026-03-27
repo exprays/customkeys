@@ -1,7 +1,19 @@
+"use client"
+
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
 
 export function CTA() {
+  const [copied, setCopied] = useState(false)
+  const installCommand = "npm install -g @nan0-io/cli"
+
+  const handleCopyInstallCommand = async () => {
+    await navigator.clipboard.writeText(installCommand)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <section className="py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-6">
@@ -22,8 +34,8 @@ export function CTA() {
                 Start building for free
                 <ArrowRight className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="lg">
-                Schedule a demo
+              <Button variant="outline" size="lg" onClick={handleCopyInstallCommand}>
+                {copied ? "Copied npm command" : "Copy npm install command"}
               </Button>
             </div>
           </div>
