@@ -2,7 +2,7 @@
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
     "build": {
-      "outputs": ["frontend/.next/**", "frontend/!.next/cache/**", "frontend/out/**", "frontend/dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "out/**", "dist/**"]
     },
     "lint": {},
     "dev": {
