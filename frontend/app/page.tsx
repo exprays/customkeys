@@ -1,13 +1,25 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { Navbar } from "@/components/navbar"
+import { Hero } from "@/components/hero"
+import { Stats } from "@/components/stats"
+import { Features } from "@/components/features"
+import { CodeExample } from "@/components/code-example"
+import { Pricing } from "@/components/pricing"
+import { CTA } from "@/components/cta"
+import { Footer } from "@/components/footer"
 
-export default async function RootPage() {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-
-  if (data.user) {
-    redirect("/dashboard");
-  } else {
-    redirect("/login");
-  }
+export default function LandingPage() {
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <main>
+        <Hero />
+        <Stats />
+        <Features />
+        <CodeExample />
+        <Pricing />
+        <CTA />
+      </main>
+      <Footer />
+    </div>
+  )
 }
