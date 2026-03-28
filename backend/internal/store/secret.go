@@ -144,3 +144,42 @@ func (s *Store) ListSecretVersions(ctx context.Context, secretID uuid.UUID) ([]*
 	}
 	return versions, nil
 }
+
+// Add these methods to the existing store/secret.go
+
+func (s *Store) RotateSecretValue(ctx context.Context, secretID uuid.UUID, encValue, encDEK string) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// Save current version to history
+	var currentVersion int
+	var currentEncValue, currentEncDEK string
+	var createdBy uuid.UUID
+	err = tx.QueryRow(ctx,
+		`SELECT version, encrypted_value, encrypted_dek, created_by FROM secrets WHERE id=$1`, secretID).
+		Scan(&currentVersion, &currentEncValue, &currentEncDEK, &createdBy)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(ctx,
+		`INSERT INTO secret_versions (secret_id, encrypted_value, encrypted_dek, version, created_by)
+		 VALUES ($1,$2,$3,$4,$5)`,
+		secretID, currentEncValue, currentEncDEK, currentVersion, createdBy)
+	if err != nil {
+		return err
+	}
+
+	// Update secret with new value
+	_, err = tx.Exec(ctx,
+		`UPDATE secrets SET encrypted_value=$2, encrypted_dek=$3, version=version+1, updated_at=NOW()
+		 WHERE id=$1`, secretID, encValue, encDEK)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}

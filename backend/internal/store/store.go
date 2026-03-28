@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/nan0/backend/internal/model"
 )
 
 // Store wraps the pgx connection pool.
@@ -46,4 +49,37 @@ func (s *Store) Close() {
 // Pool returns the underlying pool (for use in sub-packages).
 func (s *Store) Pool() *pgxpool.Pool {
 	return s.pool
+}
+
+// ExecRaw connects to an external DSN and runs a single statement.
+// Used by the Postgres rotation backend.
+func (s *Store) ExecRaw(ctx context.Context, dsn, query string) error {
+	conn, err := pgx.Connect(ctx, dsn)
+	if err != nil {
+		return err
+	}
+	defer conn.Close(ctx)
+	_, err = conn.Exec(ctx, query)
+	return err
+}
+
+func (s *Store) GetOrgOwners(ctx context.Context, projectID uuid.UUID) ([]*model.User, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT u.id, u.org_id, u.email, u.role, u.mfa_enabled, u.last_login_at, u.created_at
+		FROM users u
+		JOIN projects p ON p.org_id = u.org_id
+		WHERE p.id = $1 AND u.role IN ('owner', 'admin')`, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []*model.User
+	for rows.Next() {
+		var u model.User
+		if err := rows.Scan(&u.ID, &u.OrgID, &u.Email, &u.Role, &u.MFAEnabled, &u.LastLoginAt, &u.CreatedAt); err != nil {
+			continue
+		}
+		result = append(result, &u)
+	}
+	return result, nil
 }
