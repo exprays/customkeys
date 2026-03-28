@@ -13,9 +13,12 @@ import (
 
 	"github.com/nan0/backend/internal/cache"
 	"github.com/nan0/backend/internal/crypto"
+	"github.com/nan0/backend/internal/email"
 	"github.com/nan0/backend/internal/handler"
 	"github.com/nan0/backend/internal/middleware"
+	"github.com/nan0/backend/internal/rotation"
 	"github.com/nan0/backend/internal/store"
+	"github.com/nan0/backend/internal/ws"
 )
 
 type Config struct {
@@ -26,23 +29,23 @@ type Config struct {
 	EncryptionKey  string
 	AuditHMACKey   string
 	AllowedOrigins string
+	Email          *email.Client
+	Hub            *ws.Hub
+	Worker         *rotation.Worker
 }
 
 func NewRouter(cfg Config) http.Handler {
 	r := chi.NewRouter()
 
-	// Core middleware
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.RealIP)
 	r.Use(chimiddleware.Logger)
 	r.Use(chimiddleware.Recoverer)
 	r.Use(chimiddleware.Timeout(30 * time.Second))
 
-	// Sentry
 	sentryHandler := sentryhttp.New(sentryhttp.Options{Repanic: true})
 	r.Use(sentryHandler.Handle)
 
-	// CORS
 	origins := strings.Split(cfg.AllowedOrigins, ",")
 	if len(origins) == 0 || (len(origins) == 1 && origins[0] == "") {
 		origins = []string{"http://localhost:3000"}
@@ -56,7 +59,6 @@ func NewRouter(cfg Config) http.Handler {
 		MaxAge:           300,
 	}))
 
-	// Add request ID to sentry
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			if hub := sentry.GetHubFromContext(req.Context()); hub != nil {
@@ -67,7 +69,6 @@ func NewRouter(cfg Config) http.Handler {
 		})
 	})
 
-	// Init encryption engine
 	var cryptoEngine *crypto.Engine
 	if cfg.EncryptionKey != "" {
 		var err error
@@ -77,31 +78,37 @@ func NewRouter(cfg Config) http.Handler {
 		}
 	}
 
-	// Health check (public)
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok","service":"nano"}`))
+		w.Write([]byte(`{"status":"ok","service":"nano","phase":"2"}`))
 	})
 
-	// Handlers
 	h := &handler.Handler{
+		Store:        cfg.DB,
 		DB:           cfg.DB,
 		Cache:        cfg.Cache,
 		Crypto:       cryptoEngine,
 		AuditHMACKey: []byte(cfg.AuditHMACKey),
+		Hub:          cfg.Hub,
+		Rotation:     cfg.Worker,
+		Email:        cfg.Email,
 	}
 
-	// Auth middleware factory
 	jwtAuth := middleware.AuthMiddleware(cfg.JWTSecret, cfg.SupabaseURL, cfg.DB)
 
-	// API v1
 	r.Route("/v1", func(r chi.Router) {
-		// Org setup (needs auth but no org yet)
+		// Public webhook — no auth (verified by signature)
+		r.Post("/webhooks/lemonsqueezy", h.LemonSqueezyWebhook)
+
+		// Invitation accept (needs JWT but no org)
+		r.With(jwtAuth).Get("/invitations/accept", h.AcceptInvitation)
+
+		// Org setup
 		r.With(jwtAuth).Post("/orgs", h.CreateOrg)
 		r.With(jwtAuth).Get("/orgs/me", h.GetMyOrg)
 		r.With(jwtAuth).Get("/me", h.GetMe)
 
-		// Protected routes - need auth + org
+		// Protected routes
 		r.Group(func(r chi.Router) {
 			r.Use(jwtAuth)
 			r.Use(middleware.RequireOrg)
@@ -124,6 +131,23 @@ func NewRouter(cfg Config) http.Handler {
 			r.Delete("/secrets/{sid}", h.DeleteSecret)
 			r.Get("/secrets/{sid}/versions", h.ListSecretVersions)
 
+			// Rotation (Phase 2)
+			r.Post("/secrets/{sid}/rotation", h.CreateRotationSchedule)
+			r.Get("/secrets/{sid}/rotation", h.GetRotationSchedule)
+			r.Delete("/rotation/{schedid}", h.DeleteRotationSchedule)
+			r.Post("/secrets/{sid}/rotate", h.TriggerRotation)
+			r.Get("/secrets/{sid}/rotation/history", h.ListRotationHistory)
+
+			// Approvals (Phase 2)
+			r.Get("/approvals", h.ListApprovals)
+			r.Post("/approvals/{aid}/resolve", h.ResolveApproval)
+
+			// Members & Invitations (Phase 2)
+			r.Get("/orgs/me/members", h.ListMembers)
+			r.Post("/orgs/me/invitations", h.InviteMember)
+			r.Get("/orgs/me/invitations", h.ListInvitations)
+			r.Delete("/orgs/me/invitations/{iid}", h.RevokeInvitation)
+
 			// Audit log
 			r.Get("/orgs/me/audit", h.ListAuditEvents)
 
@@ -132,15 +156,27 @@ func NewRouter(cfg Config) http.Handler {
 			r.Post("/tokens", h.CreateAPIToken)
 			r.Delete("/tokens/{tid}", h.RevokeAPIToken)
 
-			// Users / members
-			r.Get("/orgs/me/members", h.ListMembers)
+			// Billing (Phase 2)
+			r.Post("/billing/checkout", h.GetCheckoutURL)
+			r.Get("/orgs/me/usage", h.GetOrgUsage)
 		})
 
-		// API token authenticated routes (for SDK/CLI access)
+		// SDK/API token routes
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.APITokenMiddleware(cfg.DB))
 			r.Use(middleware.RequireOrg)
 			r.Get("/envs/{eid}/secrets/values", h.BulkPullSecrets)
+		})
+
+		// WebSocket (Phase 2)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.APITokenMiddleware(cfg.DB))
+			r.Get("/envs/{eid}/watch", func(w http.ResponseWriter, r *http.Request) {
+				envID := chi.URLParam(r, "eid")
+				if cfg.Hub != nil {
+					cfg.Hub.ServeWS(w, r, envID)
+				}
+			})
 		})
 	})
 

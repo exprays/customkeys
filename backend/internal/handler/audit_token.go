@@ -58,8 +58,8 @@ func (h *Handler) ListAuditEvents(w http.ResponseWriter, r *http.Request) {
 // --- API Tokens ---
 
 type createTokenRequest struct {
-	Name      string    `json:"name"`
-	Scopes    []string  `json:"scopes"`
+	Name      string     `json:"name"`
+	Scopes    []string   `json:"scopes"`
 	ExpiresAt *time.Time `json:"expires_at"`
 }
 
@@ -146,4 +146,25 @@ func (h *Handler) RevokeAPIToken(w http.ResponseWriter, r *http.Request) {
 	h.writeAudit(r, orgID, userID, "user", "token.revoked", "token", &tid, nil)
 
 	respond.NoContent(w)
+}
+
+// Append to existing audit_token.go
+
+func (h *Handler) GetOrgUsage(w http.ResponseWriter, r *http.Request) {
+	orgID, ok := getOrgID(r)
+	if !ok {
+		respond.Error(w, http.StatusForbidden, "no organization")
+		return
+	}
+	org, err := h.Store.GetOrganizationByID(r.Context(), orgID)
+	if err != nil {
+		respond.Error(w, http.StatusInternalServerError, "failed to get org")
+		return
+	}
+	members, _ := h.Store.ListOrgUsers(r.Context(), orgID)
+	respond.OK(w, map[string]any{
+		"plan":       org.PlanTier,
+		"seat_count": len(members),
+		"seat_limit": seatLimitForPlan(org.PlanTier),
+	})
 }
