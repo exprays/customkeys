@@ -26,21 +26,27 @@ const (
 )
 
 type Organization struct {
-	ID        uuid.UUID `json:"id" db:"id"`
-	Name      string    `json:"name" db:"name"`
-	PlanTier  PlanTier  `json:"plan_tier" db:"plan_tier"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	ID                 uuid.UUID `json:"id" db:"id"`
+	Name               string    `json:"name" db:"name"`
+	PlanTier           PlanTier  `json:"plan_tier" db:"plan_tier"`
+	LSCustomerID       *string   `json:"ls_customer_id,omitempty" db:"ls_customer_id"`
+	LSSubscriptionID   *string   `json:"ls_subscription_id,omitempty" db:"ls_subscription_id"`
+	LSVariantID        *string   `json:"ls_variant_id,omitempty" db:"ls_variant_id"`
+	SeatCount          int       `json:"seat_count" db:"seat_count"`
+	BillingEmail       *string   `json:"billing_email,omitempty" db:"billing_email"`
+	AuditRetentionDays int       `json:"audit_retention_days" db:"audit_retention_days"`
+	CreatedAt          time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at" db:"updated_at"`
 }
 
 type User struct {
-	ID           uuid.UUID  `json:"id" db:"id"`
-	OrgID        *uuid.UUID `json:"org_id" db:"org_id"`
-	Email        string     `json:"email" db:"email"`
-	Role         Role       `json:"role" db:"role"`
-	MFAEnabled   bool       `json:"mfa_enabled" db:"mfa_enabled"`
-	LastLoginAt  *time.Time `json:"last_login_at" db:"last_login_at"`
-	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
+	ID          uuid.UUID  `json:"id" db:"id"`
+	OrgID       *uuid.UUID `json:"org_id" db:"org_id"`
+	Email       string     `json:"email" db:"email"`
+	Role        Role       `json:"role" db:"role"`
+	MFAEnabled  bool       `json:"mfa_enabled" db:"mfa_enabled"`
+	LastLoginAt *time.Time `json:"last_login_at" db:"last_login_at"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
 }
 
 type Project struct {
@@ -74,7 +80,6 @@ type Secret struct {
 	CreatedBy      uuid.UUID  `json:"created_by" db:"created_by"`
 	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
-	// Populated on read, never stored
 	Value          string     `json:"value,omitempty"`
 }
 
@@ -89,33 +94,32 @@ type SecretVersion struct {
 }
 
 type AuditEvent struct {
-	ID           uuid.UUID  `json:"id" db:"id"`
-	OrgID        uuid.UUID  `json:"org_id" db:"org_id"`
-	ActorID      uuid.UUID  `json:"actor_id" db:"actor_id"`
-	ActorType    string     `json:"actor_type" db:"actor_type"`
-	Action       string     `json:"action" db:"action"`
-	ResourceType string     `json:"resource_type" db:"resource_type"`
-	ResourceID   *uuid.UUID       `json:"resource_id" db:"resource_id"`
-	Metadata     json.RawMessage  `json:"metadata" db:"metadata"`
-	IPAddress    string           `json:"ip_address" db:"ip_address"`
-	UserAgent    string     `json:"user_agent" db:"user_agent"`
-	Ts           time.Time  `json:"ts" db:"ts"`
-	PrevHMAC     string     `json:"-" db:"prev_hmac"`
-	HMAC         string     `json:"-" db:"hmac"`
+	ID           uuid.UUID       `json:"id" db:"id"`
+	OrgID        uuid.UUID       `json:"org_id" db:"org_id"`
+	ActorID      uuid.UUID       `json:"actor_id" db:"actor_id"`
+	ActorType    string          `json:"actor_type" db:"actor_type"`
+	Action       string          `json:"action" db:"action"`
+	ResourceType string          `json:"resource_type" db:"resource_type"`
+	ResourceID   *uuid.UUID      `json:"resource_id" db:"resource_id"`
+	Metadata     json.RawMessage `json:"metadata" db:"metadata"`
+	IPAddress    string          `json:"ip_address" db:"ip_address"`
+	UserAgent    string          `json:"user_agent" db:"user_agent"`
+	Ts           time.Time       `json:"ts" db:"ts"`
+	PrevHMAC     string          `json:"-" db:"prev_hmac"`
+	HMAC         string          `json:"-" db:"hmac"`
 }
 
 type APIToken struct {
-	ID          uuid.UUID  `json:"id" db:"id"`
-	OrgID       uuid.UUID  `json:"org_id" db:"org_id"`
-	UserID      uuid.UUID  `json:"user_id" db:"user_id"`
-	Name        string     `json:"name" db:"name"`
-	TokenHash   string     `json:"-" db:"token_hash"`
-	Scopes      []string   `json:"scopes" db:"scopes"`
-	LastUsedAt  *time.Time `json:"last_used_at" db:"last_used_at"`
-	ExpiresAt   *time.Time `json:"expires_at" db:"expires_at"`
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
-	// Only set on creation, never stored
-	PlainToken  string     `json:"token,omitempty"`
+	ID         uuid.UUID  `json:"id" db:"id"`
+	OrgID      uuid.UUID  `json:"org_id" db:"org_id"`
+	UserID     uuid.UUID  `json:"user_id" db:"user_id"`
+	Name       string     `json:"name" db:"name"`
+	TokenHash  string     `json:"-" db:"token_hash"`
+	Scopes     []string   `json:"scopes" db:"scopes"`
+	LastUsedAt *time.Time `json:"last_used_at" db:"last_used_at"`
+	ExpiresAt  *time.Time `json:"expires_at" db:"expires_at"`
+	CreatedAt  time.Time  `json:"created_at" db:"created_at"`
+	PlainToken string     `json:"token,omitempty"`
 }
 
 type ProjectMember struct {
@@ -127,12 +131,86 @@ type ProjectMember struct {
 	GrantedAt time.Time `json:"granted_at" db:"granted_at"`
 }
 
+// Phase 2 models
+
+type RotationBackend string
+
+const (
+	RotationWebhook  RotationBackend = "webhook"
+	RotationPostgres RotationBackend = "postgres"
+	RotationRedis    RotationBackend = "redis"
+)
+
+type RotationSchedule struct {
+	ID             uuid.UUID       `json:"id" db:"id"`
+	SecretID       uuid.UUID       `json:"secret_id" db:"secret_id"`
+	IntervalHours  int             `json:"interval_hours" db:"interval_hours"`
+	Backend        RotationBackend `json:"backend" db:"backend"`
+	ConfigJSON     json.RawMessage `json:"config_json" db:"config_json"`
+	LastRotatedAt  *time.Time      `json:"last_rotated_at" db:"last_rotated_at"`
+	NextRotationAt time.Time       `json:"next_rotation_at" db:"next_rotation_at"`
+	Enabled        bool            `json:"enabled" db:"enabled"`
+	CreatedBy      uuid.UUID       `json:"created_by" db:"created_by"`
+	CreatedAt      time.Time       `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time       `json:"updated_at" db:"updated_at"`
+}
+
+type RotationHistory struct {
+	ID          uuid.UUID  `json:"id" db:"id"`
+	SecretID    uuid.UUID  `json:"secret_id" db:"secret_id"`
+	ScheduleID  *uuid.UUID `json:"schedule_id" db:"schedule_id"`
+	Status      string     `json:"status" db:"status"`
+	Backend     string     `json:"backend" db:"backend"`
+	ErrorMsg    *string    `json:"error_msg" db:"error_msg"`
+	TriggeredBy string     `json:"triggered_by" db:"triggered_by"`
+	StartedAt   time.Time  `json:"started_at" db:"started_at"`
+	FinishedAt  *time.Time `json:"finished_at" db:"finished_at"`
+}
+
+type ApprovalStatus string
+
+const (
+	ApprovalPending  ApprovalStatus = "pending"
+	ApprovalApproved ApprovalStatus = "approved"
+	ApprovalRejected ApprovalStatus = "rejected"
+	ApprovalExpired  ApprovalStatus = "expired"
+)
+
+type PendingApproval struct {
+	ID          uuid.UUID       `json:"id" db:"id"`
+	OrgID       uuid.UUID       `json:"org_id" db:"org_id"`
+	EnvID       uuid.UUID       `json:"env_id" db:"env_id"`
+	SecretID    *uuid.UUID      `json:"secret_id" db:"secret_id"`
+	RequestedBy uuid.UUID       `json:"requested_by" db:"requested_by"`
+	ApprovedBy  *uuid.UUID      `json:"approved_by" db:"approved_by"`
+	Action      string          `json:"action" db:"action"`
+	PayloadJSON json.RawMessage `json:"payload_json" db:"payload_json"`
+	Status      ApprovalStatus  `json:"status" db:"status"`
+	ExpiresAt   time.Time       `json:"expires_at" db:"expires_at"`
+	ResolvedAt  *time.Time      `json:"resolved_at" db:"resolved_at"`
+	CreatedAt   time.Time       `json:"created_at" db:"created_at"`
+}
+
+type Invitation struct {
+	ID         uuid.UUID  `json:"id" db:"id"`
+	OrgID      uuid.UUID  `json:"org_id" db:"org_id"`
+	Email      string     `json:"email" db:"email"`
+	Role       Role       `json:"role" db:"role"`
+	TokenHash  string     `json:"-" db:"token_hash"`
+	InvitedBy  uuid.UUID  `json:"invited_by" db:"invited_by"`
+	AcceptedAt *time.Time `json:"accepted_at" db:"accepted_at"`
+	ExpiresAt  time.Time  `json:"expires_at" db:"expires_at"`
+	CreatedAt  time.Time  `json:"created_at" db:"created_at"`
+	// Set only on creation
+	PlainToken string `json:"token,omitempty"`
+}
+
 // Auth context key
 type ContextKey string
 
 const (
-	CtxUserID  ContextKey = "user_id"
-	CtxOrgID   ContextKey = "org_id"
-	CtxRole    ContextKey = "role"
-	CtxEmail   ContextKey = "email"
+	CtxUserID ContextKey = "user_id"
+	CtxOrgID  ContextKey = "org_id"
+	CtxRole   ContextKey = "role"
+	CtxEmail  ContextKey = "email"
 )
