@@ -12,21 +12,23 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/joho/godotenv"
+	goredis "github.com/redis/go-redis/v9"
 
 	"github.com/nan0/backend/internal/api"
 	"github.com/nan0/backend/internal/cache"
+	"github.com/nan0/backend/internal/crypto"
+	"github.com/nan0/backend/internal/email"
+	"github.com/nan0/backend/internal/rotation"
 	"github.com/nan0/backend/internal/store"
+	"github.com/nan0/backend/internal/ws"
 )
 
 func main() {
-	// Load .env in development
 	_ = godotenv.Load()
 
-	// Init Sentry
-	sentryDSN := os.Getenv("SENTRY_DSN")
-	if sentryDSN != "" {
+	if dsn := os.Getenv("SENTRY_DSN"); dsn != "" {
 		if err := sentry.Init(sentry.ClientOptions{
-			Dsn:              sentryDSN,
+			Dsn:              dsn,
 			Environment:      os.Getenv("APP_ENV"),
 			TracesSampleRate: 0.2,
 			EnableTracing:    true,
@@ -37,7 +39,6 @@ func main() {
 		log.Println("Sentry initialized")
 	}
 
-	// DB
 	db, err := store.New(os.Getenv("DATABASE_URL"))
 	if err != nil {
 		sentry.CaptureException(err)
@@ -45,18 +46,45 @@ func main() {
 	}
 	defer db.Close()
 
-	// Run migrations
 	if err := store.Migrate(os.Getenv("DATABASE_URL"), "migrations"); err != nil {
 		log.Printf("Migration warning: %v", err)
 	}
 
-	// Redis cache
 	rdb, err := cache.New(os.Getenv("REDIS_URL"))
 	if err != nil {
-		log.Printf("Redis connect warning (non-fatal): %v", err)
+		log.Printf("Redis connect warning: %v", err)
 	}
 
-	// Build router
+	// WebSocket hub
+	hub := ws.NewHub()
+
+	// Email client (Resend)
+	var emailClient *email.Client
+	if key := os.Getenv("RESEND_API_KEY"); key != "" {
+		emailClient = email.New(key,
+			os.Getenv("EMAIL_FROM"),
+			os.Getenv("EMAIL_FROM_NAME"),
+		)
+	}
+
+	// Rotation worker
+	var worker *rotation.Worker
+	if rdb != nil {
+		var cryptoEngine *crypto.Engine
+		if key := os.Getenv("ENCRYPTION_KEY"); key != "" {
+			cryptoEngine, _ = crypto.New(key)
+		}
+		var rawRedis *goredis.Client
+		if rdb != nil {
+			rawRedis = rdb.Raw()
+		}
+		worker = rotation.NewWorker(db, cryptoEngine, hub, emailClient, rawRedis)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		go worker.Run(ctx)
+		log.Println("Rotation worker started")
+	}
+
 	router := api.NewRouter(api.Config{
 		DB:             db,
 		Cache:          rdb,
@@ -65,6 +93,9 @@ func main() {
 		EncryptionKey:  os.Getenv("ENCRYPTION_KEY"),
 		AuditHMACKey:   os.Getenv("AUDIT_HMAC_KEY"),
 		AllowedOrigins: os.Getenv("ALLOWED_ORIGINS"),
+		Email:          emailClient,
+		Hub:            hub,
+		Worker:         worker,
 	})
 
 	port := os.Getenv("PORT")
@@ -80,12 +111,11 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("Nano API server starting on :%s", port)
+		log.Printf("Nano API server starting on :%s (Phase 2)", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			sentry.CaptureException(err)
 			log.Fatalf("Server error: %v", err)

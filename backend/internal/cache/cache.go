@@ -91,3 +91,12 @@ func (c *Cache) InvalidateEnvEtag(ctx context.Context, envID string) error {
 	}
 	return c.client.Del(ctx, fmt.Sprintf("etag:env:%s", envID)).Err()
 }
+
+// Add this method to the existing Cache struct
+
+func (c *Cache) Raw() *redis.Client {
+	if c == nil {
+		return nil
+	}
+	return c.client
+}
