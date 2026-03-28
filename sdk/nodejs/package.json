@@ -1,0 +1,15 @@
+{
+  "name": "@nano-sdk/node",
+  "version": "2.0.0",
+  "description": "Official Node.js SDK for Nano secrets manager",
+  "main": "index.js",
+  "scripts": {
+    "test": "node -e \"const {NanoClient}=require('.');console.log('SDK loaded OK')\""
+  },
+  "keywords": ["secrets", "config", "nano", "sdk"],
+  "license": "MIT",
+  "optionalDependencies": {
+    "ws": "^8.17.0"
+  },
+  "engines": { "node": ">=18" }
+}

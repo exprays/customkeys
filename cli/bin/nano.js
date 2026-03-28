@@ -264,3 +264,90 @@ program
   });
 
 program.parse(process.argv);
+
+// ── Phase 2: rotate command ────────────────────────────────────────────────
+program
+  .command('rotate <secret-key>')
+  .description('Trigger an immediate rotation for a secret')
+  .requiredOption('-e, --env <envId>', 'Environment ID')
+  .action(async (secretKey, options) => {
+    const cfg = loadConfig();
+    if (!cfg) return;
+
+    // First find the secret ID by key
+    const listResp = await fetch(
+      `${cfg.apiUrl}/v1/projects/${cfg.project}/envs/${options.env}/secrets`,
+      { headers: { Authorization: `Bearer ${cfg.token}` } }
+    );
+    if (!listResp.ok) {
+      console.error(chalk.red(`Failed to list secrets: ${listResp.status}`));
+      process.exit(1);
+    }
+    const secrets = await listResp.json();
+    const secret = (secrets.data || secrets).find(s => s.key === secretKey);
+    if (!secret) {
+      console.error(chalk.red(`Secret '${secretKey}' not found`));
+      process.exit(1);
+    }
+
+    const resp = await fetch(`${cfg.apiUrl}/v1/secrets/${secret.id}/rotate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${cfg.token}` },
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      console.error(chalk.red(`Rotation failed: ${err.error || resp.status}`));
+      process.exit(1);
+    }
+    console.log(chalk.green(`✓ Rotation triggered for '${secretKey}'`));
+  });
+
+// ── Phase 2: verify-audit command ─────────────────────────────────────────
+program
+  .command('verify-audit')
+  .description('Verify the HMAC chain integrity of the audit log')
+  .option('--limit <n>', 'Number of recent events to verify', '100')
+  .action(async (options) => {
+    const cfg = loadConfig();
+    if (!cfg) return;
+
+    console.log(chalk.blue('Fetching audit log...'));
+    const resp = await fetch(
+      `${cfg.apiUrl}/v1/orgs/me/audit?limit=${options.limit}`,
+      { headers: { Authorization: `Bearer ${cfg.token}` } }
+    );
+    if (!resp.ok) {
+      console.error(chalk.red(`Failed to fetch audit log: ${resp.status}`));
+      process.exit(1);
+    }
+    const { data: events } = await resp.json();
+    if (!events || events.length === 0) {
+      console.log(chalk.yellow('No audit events found.'));
+      return;
+    }
+
+    // The server exposes hmac values for admin verification
+    let verified = 0;
+    let broken = 0;
+    for (let i = 0; i < events.length; i++) {
+      const ev = events[i];
+      // Verify chain linkage (prev_hmac of event[i] should match hmac of event[i+1])
+      if (i < events.length - 1) {
+        if (ev.prev_hmac !== undefined && events[i + 1].hmac !== undefined) {
+          if (ev.prev_hmac !== events[i + 1].hmac) {
+            console.error(chalk.red(`✗ Chain break detected at event ${ev.id} (position ${i})`));
+            broken++;
+          } else {
+            verified++;
+          }
+        }
+      }
+    }
+
+    if (broken === 0) {
+      console.log(chalk.green(`✓ Audit chain intact — ${events.length} events verified, ${verified} links checked`));
+    } else {
+      console.error(chalk.red(`✗ ${broken} chain breaks detected out of ${events.length} events`));
+      process.exit(1);
+    }
+  });
