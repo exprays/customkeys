@@ -6,12 +6,12 @@ export function Stats() {
       description: "than manual processes"
     },
     {
-      value: "99.99%",
+      value: "99.9%",
       label: "uptime SLA",
       description: "guaranteed availability"
     },
     {
-      value: "$0.001",
+      value: "$0.01",
       label: "per API call",
       description: "vs $0.05 on AWS"
     },
@@ -23,18 +23,19 @@ export function Stats() {
   ]
 
   return (
-    <section className="border-y border-border bg-card/50">
-      <div className="mx-auto max-w-7xl px-6 py-12 md:py-16">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+    <section className="border-y border-[rgba(65,65,65,0.8)] bg-black">
+      <div className="mx-auto max-w-7xl px-6 py-16 md:py-24">
+        <div className="grid grid-cols-2 gap-12 md:grid-cols-4">
           {stats.map((stat, index) => (
-            <div key={index} className="text-center md:text-left">
-              <div className="text-3xl font-bold text-foreground md:text-4xl">
-                {stat.value}
+            <div key={index} className="text-center md:text-left flex flex-col justify-end">
+              <div className="text-[48px] md:text-[72px] font-black leading-none text-white font-[family-name:--font-inter] tracking-tight">
+                {stat.value.replace(/[^\d.]/g, '')}
+                <span className="text-primary">{stat.value.replace(/[\d.]/g, '')}</span>
               </div>
-              <div className="mt-1 text-sm font-medium text-foreground">
+              <div className="mt-4 text-[14px] font-bold uppercase tracking-[1.4px] text-white">
                 {stat.label}
               </div>
-              <div className="text-sm text-muted-foreground">
+              <div className="mt-2 text-[14px] text-[#a0a0a0]">
                 {stat.description}
               </div>
             </div>

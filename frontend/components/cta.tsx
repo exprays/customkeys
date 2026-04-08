@@ -15,32 +15,31 @@ export function CTA() {
   }
 
   return (
-    <section className="py-20 md:py-28">
+    <section className="py-20 md:py-28 bg-black border-t border-[rgba(65,65,65,0.8)]">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8 md:p-16">
-          {/* Background pattern */}
-          <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#1a1a1a_1px,transparent_1px),linear-gradient(to_bottom,#1a1a1a_1px,transparent_1px)] bg-size-[2rem_2rem] opacity-50" />
+        <div className="relative overflow-hidden rounded-[8px] border border-[rgba(65,65,65,0.8)] bg-[#141414] p-10 md:p-20 shadow-[rgba(0,0,0,0.1)_0px_10px_15px_-3px]">
           
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="text-balance text-[36px] font-black tracking-tight text-white md:text-[56px] font-[family-name:--font-inter] leading-[1.05]">
               Stop wrestling with secrets management
             </h2>
-            <p className="mt-4 text-pretty text-muted-foreground md:text-lg">
+            <p className="mt-6 text-pretty text-[#a0a0a0] md:text-[20px] leading-relaxed font-semibold">
               Join thousands of engineering teams who switched from Vault and AWS Secrets Manager 
               to nan0. Get started in minutes, not days.
             </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Button size="lg" className="gap-2">
+            <div className="mt-12 flex flex-col items-center justify-center gap-6 sm:flex-row">
+              <Button size="lg" className="gap-2 bg-primary text-[#151515] hover:bg-[#1d1d1d] hover:text-[#f4f692] px-8 h-14 rounded-[4px] font-bold text-[16px] tracking-wide cursor-pointer">
                 Start building for free
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-5 w-5" />
               </Button>
-              <div className="relative w-full max-w-xl rounded-md p-px bg-linear-to-r from-cyan-400/80 via-emerald-400/70 to-amber-400/80 sm:w-auto">
-                <div className="flex items-center gap-2 rounded-md border border-border/60 bg-card/95 p-2 backdrop-blur">
-                  <span className="truncate px-2 text-sm text-foreground">{installCommand}</span>
+              <div className="relative w-full max-w-xl sm:w-auto">
+                <div className="flex h-14 items-center gap-4 rounded-[4px] border border-[rgba(65,65,65,0.8)] bg-black px-4">
+                  <span className="text-[20px] text-primary">$</span>
+                  <span className="truncate text-[16px] text-white font-[family-name:--font-inconsolata] font-semibold">{installCommand}</span>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    className="border-cyan-400/40 bg-linear-to-r from-cyan-500/15 to-emerald-500/15 hover:from-cyan-500/25 hover:to-emerald-500/25 cursor-pointer"
+                    className="cursor-pointer border border-[#4f5100] bg-transparent hover:bg-[#3a3a3a] hover:text-[#f4f692] text-white rounded-[4px] font-bold uppercase tracking-[1.4px]"
                     onClick={handleCopyInstallCommand}
                   >
                     {copied ? "Copied" : "Copy"}

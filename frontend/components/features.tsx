@@ -42,34 +42,34 @@ const features = [
 
 export function Features() {
   return (
-    <section id="features" className="py-20 md:py-28">
+    <section id="features" className="py-20 md:py-28 bg-[#000000]">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-medium uppercase tracking-wider text-accent">
-            Features
+          <p className="text-[12px] font-bold uppercase tracking-widest text-primary">
+            01 / FEATURES
           </p>
-          <h2 className="mt-2 text-balance text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+          <h2 className="mt-4 text-balance text-[36px] leading-[1.30] font-semibold tracking-normal text-[#ffffff] md:text-[36px] font-[family-name:--font-inter]">
             Everything you need for secrets at scale
           </h2>
-          <p className="mt-4 text-pretty text-muted-foreground">
+          <p className="mt-6 text-pretty text-[18px] text-[#a0a0a0] leading-[1.56] font-normal">
             Built by engineers who got tired of the operational overhead of self-hosted 
             solutions and the unpredictable costs of cloud provider offerings.
           </p>
         </div>
 
-        <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-20 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, index) => (
             <div 
               key={index}
-              className="group rounded-lg border border-border bg-card p-6 transition-colors hover:border-accent/50 hover:bg-card/80"
+              className="group rounded-[8px] border border-[#414141]/80 bg-[#141414] p-8 transition-colors hover:border-primary hover:shadow-[0px_4px_25px_rgba(0,0,0,0.14)_inset]"
             >
-              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent">
-                <feature.icon className="h-5 w-5" />
+              <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-[4px] bg-[#000000] border border-[#414141]/80 text-primary">
+                <feature.icon className="h-6 w-6" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground">
+              <h3 className="text-[20px] font-semibold text-[#ffffff] leading-[1.40] font-[family-name:--font-inter]">
                 {feature.title}
               </h3>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+              <p className="mt-3 text-[16px] text-[#a0a0a0] leading-[1.50]">
                 {feature.description}
               </p>
             </div>

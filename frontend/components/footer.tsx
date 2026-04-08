@@ -30,35 +30,35 @@ const footerLinks = {
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-card/50">
-      <div className="mx-auto max-w-7xl px-6 py-12 md:py-16">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-6">
+    <footer className="border-t border-[rgba(65,65,65,0.8)] bg-black pt-16 pb-12">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-6">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent">
-                <span className="text-sm font-bold text-accent-foreground">n0</span>
+            <Link href="/" className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-[4px] bg-primary">
+                <span className="text-[14px] font-bold text-[#151515]">n0</span>
               </div>
-              <span className="text-xl font-semibold tracking-tight text-foreground">nan0</span>
+              <span className="text-[20px] font-bold tracking-tight text-white hover:text-primary transition-colors">nano</span>
             </Link>
-            <p className="mt-4 max-w-xs text-sm text-muted-foreground">
+            <p className="mt-6 max-w-xs text-[16px] leading-relaxed text-[#a0a0a0]">
               Cloud-native secrets management built for modern engineering teams. 
               Secure, fast, and developer-friendly.
             </p>
-            <div className="mt-6 flex items-center gap-4">
+            <div className="mt-8 flex items-center gap-5">
               <a 
                 href="#" 
-                className="text-muted-foreground transition-colors hover:text-foreground"
+                className="text-[#a0a0a0] transition-colors hover:text-primary"
                 aria-label="GitHub"
               >
-                <Github className="h-5 w-5" />
+                <Github className="h-6 w-6" />
               </a>
               <a 
                 href="#" 
-                className="text-muted-foreground transition-colors hover:text-foreground"
+                className="text-[#a0a0a0] transition-colors hover:text-primary"
                 aria-label="Twitter"
               >
-                <Twitter className="h-5 w-5" />
+                <Twitter className="h-6 w-6" />
               </a>
             </div>
           </div>
@@ -66,13 +66,13 @@ export function Footer() {
           {/* Links */}
           {Object.entries(footerLinks).map(([category, links]) => (
             <div key={category}>
-              <h3 className="text-sm font-semibold text-foreground">{category}</h3>
-              <ul className="mt-4 space-y-3">
+              <h3 className="text-[14px] font-semibold uppercase tracking-[1.4px] text-white">{category}</h3>
+              <ul className="mt-6 space-y-4">
                 {links.map((link) => (
                   <li key={link.name}>
                     <Link 
                       href={link.href}
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      className="text-[14px] font-semibold text-[#a0a0a0] transition-colors hover:text-primary"
                     >
                       {link.name}
                     </Link>
@@ -83,12 +83,12 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 md:flex-row">
-          <p className="text-sm text-muted-foreground">
+        <div className="mt-20 flex flex-col items-center justify-between gap-6 border-t border-[rgba(65,65,65,0.8)] pt-8 md:flex-row">
+          <p className="text-[14px] text-[#a0a0a0] font-semibold">
             © {new Date().getFullYear()} nan0, Inc. All rights reserved.
           </p>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="inline-flex h-2 w-2 rounded-full bg-green-500" />
+          <div className="flex items-center gap-3 text-[14px] text-[#a0a0a0] font-bold">
+            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
             All systems operational
           </div>
         </div>

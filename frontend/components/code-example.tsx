@@ -108,33 +108,33 @@ export function CodeExample() {
   const activeCode = tabs.find(t => t.id === activeTab)
 
   return (
-    <section className="py-20 md:py-28 bg-card/30">
+    <section className="py-20 md:py-28 bg-[#000000]">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-medium uppercase tracking-wider text-accent">
-            Integrations
+          <p className="text-[12px] font-bold uppercase tracking-widest text-primary">
+            02 / INTEGRATIONS
           </p>
-          <h2 className="mt-2 text-balance text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+          <h2 className="mt-4 text-balance text-[36px] font-semibold tracking-normal text-[#ffffff] md:text-[36px] font-[family-name:--font-inter]">
             Works with your existing stack
           </h2>
-          <p className="mt-4 text-pretty text-muted-foreground">
+          <p className="mt-6 text-pretty text-[18px] leading-[1.56] text-[#a0a0a0] font-normal">
             Native integrations for every workflow. From local development to production Kubernetes clusters.
           </p>
         </div>
 
-        <div className="mx-auto mt-12 max-w-4xl">
-          <div className="overflow-hidden rounded-lg border border-border bg-card">
+        <div className="mx-auto mt-20 max-w-4xl">
+          <div className="overflow-hidden rounded-[8px] border border-[#414141]/80 bg-[#141414]">
             {/* Tabs */}
-            <div className="flex border-b border-border bg-secondary/30">
+            <div className="flex border-b border-[#414141]/80 bg-[#000000]">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    "px-4 py-3 text-sm font-medium transition-colors",
+                    "px-6 py-4 text-[14px] font-bold uppercase tracking-widest transition-colors rounded-[2px]",
                     activeTab === tab.id
-                      ? "border-b-2 border-accent text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "border-b-2 border-primary text-primary"
+                      : "text-[#a0a0a0] hover:text-[#ffffff]"
                   )}
                 >
                   {tab.label}
@@ -143,19 +143,19 @@ export function CodeExample() {
             </div>
 
             {/* Code */}
-            <div className="overflow-x-auto p-6">
-              <pre className="font-mono text-sm leading-relaxed">
-                <code className="text-muted-foreground">
+            <div className="overflow-x-auto p-8">
+              <pre className="font-[family-name:--font-inconsolata] text-[16px] font-semibold leading-relaxed">
+                <code className="text-[#a0a0a0]">
                   {activeCode?.code.split('\n').map((line, i) => (
                     <div key={i} className="flex">
-                      <span className="mr-4 w-6 flex-shrink-0 text-right text-muted-foreground/50">{i + 1}</span>
+                      <span className="mr-6 w-6 flex-shrink-0 text-right text-[#a0a0a0]/40">{i + 1}</span>
                       <span className="flex-1">
-                        {line.includes('#') ? (
-                          <span className="text-muted-foreground">{line}</span>
+                        {line.includes('#') || line.startsWith('//') ? (
+                          <span className="text-[#a0a0a0]">{line}</span>
                         ) : line.includes('nan0') || line.includes('NAN0') ? (
-                          <span className="text-accent">{line}</span>
+                          <span className="text-primary">{line}</span>
                         ) : (
-                          <span className="text-foreground">{line}</span>
+                          <span className="text-[#ffffff]">{line}</span>
                         )}
                       </span>
                     </div>
