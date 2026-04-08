@@ -5,7 +5,7 @@ export default function OnlineAnimation({ className }: { className?: string }) {
     <div className={cn("relative w-full h-full overflow-hidden", className)}>
       <div className="absolute top-6 left-6 overflow-hidden rounded-full px-2 py-1 shadow-sm">
         <img
-          src="/online-gradient.png"
+          src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80"
           alt="Online"
           className="absolute inset-0 z-1 w-full h-full object-cover"
         />

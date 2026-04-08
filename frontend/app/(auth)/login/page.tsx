@@ -4,11 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Eye, EyeOff, Chrome as Google, Apple } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -31,14 +33,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="surface p-8">
-      <h1 className="text-xl font-semibold text-white mb-1">Welcome back</h1>
-      <p className="text-sm text-gray-400 mb-6">Sign in to your account</p>
+    <div className="w-full">
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">Get Started Now</h1>
+        <p className="text-white/50">Please log in to your account to continue.</p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">
-            Email
+          <label className="block text-[13px] font-bold text-white uppercase tracking-wider mb-2">
+            Email address
           </label>
           <input
             type="email"
@@ -46,27 +50,41 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             required
             autoFocus
-            placeholder="you@company.com"
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition"
+            placeholder="workmail@gmail.com"
+            className="w-full px-4 py-3 bg-transparent border border-[rgba(65,65,65,0.8)] rounded-[4px] text-white placeholder-white/20 focus:outline-none focus:border-[#faff69] transition-colors"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">
-            Password
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            placeholder="••••••••"
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition"
-          />
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-[13px] font-bold text-white uppercase tracking-wider">
+              Password
+            </label>
+            <Link href="/forgot-password" title="Forgot password logic is not implemented yet" className="text-[13px] font-bold text-[#faff69] hover:text-[#faff69]/80 transition-colors">
+              Forgot Password?
+            </Link>
+          </div>
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              placeholder="••••••••••••"
+              className="w-full px-4 py-3 bg-transparent border border-[rgba(65,65,65,0.8)] rounded-[4px] text-white placeholder-white/20 focus:outline-none focus:border-[#faff69] transition-colors"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60 transition-colors"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
 
         {error && (
-          <div className="px-3 py-2 bg-red-950 border border-red-800 rounded-lg text-red-400 text-sm">
+          <div className="px-4 py-3 bg-red-500/10 border border-red-500/50 rounded-[4px] text-red-400 text-sm">
             {error}
           </div>
         )}
@@ -74,18 +92,20 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg text-sm transition-colors"
+          className="w-full btn-neon"
         >
-          {loading ? "Signing in…" : "Sign in"}
+          {loading ? "Signing in…" : "Log in"}
         </button>
       </form>
 
-      <p className="text-center text-sm text-gray-500 mt-6">
-        Don&apos;t have an account?{" "}
-        <Link href="/signup" className="text-indigo-400 hover:text-indigo-300 transition-colors">
-          Sign up
-        </Link>
-      </p>
+      <div className="mt-8 pt-8 border-t border-[rgba(65,65,65,0.4)] text-center">
+        <p className="text-white/40 text-sm">
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="text-[#faff69] font-bold hover:underline">
+            Sign up
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }
