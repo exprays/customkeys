@@ -6,37 +6,26 @@
 :root, .dark {
   --background: #000000;
   --foreground: #ffffff;
-  --card: #141414;
+  --card: transparent;
   --card-foreground: #ffffff;
   --popover: #000000;
   --popover-foreground: #ffffff;
-  --primary: #faff69;
+  --primary: #faff69; /* Neon Volt */
   --primary-foreground: #151515;
-  --secondary: #141414;
+  --secondary: #141414; /* Near Black */
   --secondary-foreground: #ffffff;
   --muted: transparent;
-  --muted-foreground: #a0a0a0;
+  --muted-foreground: #a0a0a0; /* Silver */
   --accent: #faff69;
   --accent-foreground: #151515;
   --destructive: #7f1d1d;
   --destructive-foreground: #ffffff;
-  --border: rgba(65,65,65,0.8);
+  --border: rgba(65,65,65,0.8); /* Charcoal */
+  --border-subtle: rgba(65,65,65,0.4);
   --input: rgba(65,65,65,0.8);
   --ring: #faff69;
-  --chart-1: #faff69;
-  --chart-2: #166534;
-  --chart-3: #4f5100;
-  --chart-4: #f4f692;
-  --chart-5: #a0a0a0;
+  
   --radius: 0.25rem; /* 4px for sharp edges */
-  --sidebar: #141414;
-  --sidebar-foreground: #ffffff;
-  --sidebar-primary: #faff69;
-  --sidebar-primary-foreground: #151515;
-  --sidebar-accent: #3a3a3a;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(65,65,65,0.8);
-  --sidebar-ring: #faff69;
 }
 
 @theme inline {
@@ -44,80 +33,85 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 2px);
-  --radius-md: calc(var(--radius) - 1px);
+  --color-border-subtle: var(--border-subtle);
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-inconsolata), ui-monospace, monospace;
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --shadow-inset-pressed: 0px 4px 25px rgba(0,0,0,0.14) inset;
+  --radius-xl: 0.5rem; /* 8px for cards */
+  --shadow-inset-pressed: 0px 4px 4px rgba(0, 0, 0, 0.06), 0px 4px 25px rgba(0, 0, 0, 0.14) inset;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+    outline-color: var(--ring);
+    outline-width: 0;
     box-sizing: border-box;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased font-sans;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans;
+  }
+  code, pre, kbd, samp {
+    @apply font-mono;
   }
   
   ::selection {
-    background: rgba(99, 102, 241, 0.3);
+    background: rgba(250, 255, 105, 0.3);
+    color: #000;
   }
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+}
+
+@layer components {
+  .btn-neon {
+    @apply bg-[#faff69] text-[#151515] px-4 rounded-[4px] border border-[#faff69] font-semibold text-[16px] leading-[44px] cursor-pointer transition-colors hover:bg-[#1d1d1d] hover:text-white;
   }
-  ::-webkit-scrollbar-track {
-    background: var(--background);
+  
+  .btn-ghost {
+    @apply bg-transparent text-white px-8 rounded-[4px] border border-[#4f5100] font-semibold text-[16px] leading-[44px] cursor-pointer transition-colors hover:bg-[#1d1d1d] active:text-[#f4f692];
   }
-  ::-webkit-scrollbar-thumb {
-    background: var(--muted);
-    border-radius: 3px;
+  
+  .btn-forest {
+    @apply bg-[#166534] text-white px-4 py-3 rounded-[4px] border border-[#141414] font-semibold text-[16px] cursor-pointer transition-colors hover:bg-[#3a3a3a] active:text-[#f4f692];
   }
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--accent);
+  
+  .btn-dark {
+    @apply bg-[#141414] text-white px-4 py-3 rounded-[4px] border border-[#141414] font-semibold text-[16px] cursor-pointer transition-colors hover:bg-[#3a3a3a] active:text-[#f4f692];
+  }
+
+  .nav-link {
+    @apply text-[14px] font-semibold uppercase tracking-[1.4px] text-white transition-colors hover:text-[#faff69];
+  }
+
+  .card-standard {
+    @apply bg-transparent border border-[rgba(65,65,65,0.8)] rounded-xl p-7;
+  }
+
+  .card-neon {
+    @apply bg-transparent border-2 border-[#faff69] rounded-xl p-7;
+  }
+
+  .card-inset {
+    @apply bg-transparent border border-[rgba(65,65,65,0.8)] rounded-xl p-7 shadow-[0px_4px_4px_rgba(0,0,0,0.06),0px_4px_25px_rgba(0,0,0,0.14)_inset];
+  }
+
+  .section-divider {
+    @apply border-none border-t border-[rgba(65,65,65,0.4)] mx-auto max-w-7xl h-px my-0;
   }
 }
 
 @layer utilities {
   .text-muted {
     @apply text-muted-foreground;
-  }
-  .border-subtle {
-    @apply border-border;
-  }
-  .surface {
-    @apply bg-card border border-border rounded-xl;
-  }
-  .surface-sm {
-    @apply bg-card border border-border rounded-lg;
   }
 }

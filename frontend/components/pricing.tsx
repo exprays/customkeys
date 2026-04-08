@@ -54,13 +54,13 @@ const plans = [
 
 export function Pricing() {
   return (
-    <section id="pricing" className="py-20 md:py-28 bg-[#000000] border-t border-[#414141]/80">
+    <section id="pricing" className="py-20 md:py-28 bg-[#000000] border-t border-border">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-[12px] font-bold uppercase tracking-widest text-primary">
+          <p className="text-[14px] font-semibold uppercase tracking-[1.4px] text-[#faff69]">
             03 / PRICING
           </p>
-          <h2 className="mt-4 text-balance text-[36px] font-semibold tracking-normal text-[#ffffff] md:text-[36px] font-[family-name:--font-inter]">
+          <h2 className="mt-4 text-balance text-[36px] font-bold tracking-normal text-[#ffffff] md:text-[36px] font-sans">
             Simple, predictable pricing
           </h2>
           <p className="mt-6 text-pretty text-[18px] text-[#a0a0a0] leading-[1.56] font-normal">
@@ -74,21 +74,21 @@ export function Pricing() {
             <div 
               key={index}
               className={cn(
-                "relative rounded-[8px] p-8 transition-all duration-300",
+                "relative transition-all duration-300",
                 plan.highlighted 
-                  ? "border-[2px] border-primary bg-[#141414]" 
-                  : "border border-[#414141]/80 bg-[#141414] hover:shadow-[0px_4px_25px_rgba(0,0,0,0.14)_inset]"
+                  ? "card-neon" 
+                  : "card-standard hover:border-[#faff69]"
               )}
             >
               {plan.highlighted && (
-                <div className="absolute -top-[14px] left-1/2 -translate-x-1/2 rounded-[4px] bg-primary px-4 py-1.5 text-[12px] font-bold tracking-[1.4px] uppercase text-[#151515]">
+                <div className="absolute -top-[14px] left-1/2 -translate-x-1/2 rounded-[4px] bg-[#faff69] px-4 py-1.5 text-[12px] font-bold tracking-[1.4px] uppercase text-[#151515]">
                   Most popular
                 </div>
               )}
               
-              <h3 className="text-[20px] font-semibold text-[#ffffff] font-[family-name:--font-inter]">{plan.name}</h3>
+              <h3 className="text-[20px] font-semibold text-[#ffffff] font-sans">{plan.name}</h3>
               <div className="mt-6 flex items-baseline gap-1">
-                <span className="text-[48px] leading-none font-black text-[#ffffff] font-[family-name:--font-inter] tracking-tight">{plan.price}</span>
+                <span className="text-[48px] leading-none font-black text-[#ffffff] font-sans tracking-tight">{plan.price}</span>
                 {plan.period && (
                   <span className="text-[16px] text-[#a0a0a0] font-semibold">{plan.period}</span>
                 )}
@@ -98,22 +98,22 @@ export function Pricing() {
               <ul className="mt-8 space-y-4">
                 {plan.features.map((feature, featureIndex) => (
                   <li key={featureIndex} className="flex items-start gap-4 text-[16px] text-[#a0a0a0]">
-                    <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
+                    <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#faff69]" />
                     <span>{feature}</span>
                   </li>
                 ))}
               </ul>
 
-              <Button 
+              <button 
                 className={cn(
-                  "mt-10 w-full h-12 text-[14px] font-bold uppercase tracking-[1.4px] rounded-[4px] cursor-pointer transition-colors border",
+                  "mt-10 w-full font-bold uppercase tracking-[1.4px]",
                   plan.highlighted
-                    ? "bg-primary text-[#151515] border-primary hover:bg-[#3a3a3a] hover:text-[#f4f692] hover:border-[#141414]"
-                    : "bg-[#141414] text-[#ffffff] border-[#414141] hover:bg-[#3a3a3a] hover:text-[#f4f692]"
+                    ? "btn-neon"
+                    : "btn-dark"
                 )}
               >
                 {plan.cta}
-              </Button>
+              </button>
             </div>
           ))}
         </div>

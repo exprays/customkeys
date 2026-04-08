@@ -28,11 +28,11 @@ export function Stats() {
         <div className="grid grid-cols-2 gap-12 md:grid-cols-4">
           {stats.map((stat, index) => (
             <div key={index} className="text-center md:text-left flex flex-col justify-end">
-              <div className="text-[48px] md:text-[72px] font-black leading-none text-white font-[family-name:--font-inter] tracking-tight">
+              <div className="text-[48px] md:text-[72px] font-bold leading-none text-white font-sans tracking-tight">
                 {stat.value.replace(/[^\d.]/g, '')}
-                <span className="text-primary">{stat.value.replace(/[\d.]/g, '')}</span>
+                <span className="text-[#faff69]">{stat.value.replace(/[\d.]/g, '')}</span>
               </div>
-              <div className="mt-4 text-[14px] font-bold uppercase tracking-[1.4px] text-white">
+              <div className="mt-4 text-[14px] font-semibold uppercase tracking-[1.4px] text-white">
                 {stat.label}
               </div>
               <div className="mt-2 text-[14px] text-[#a0a0a0]">

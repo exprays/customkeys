@@ -45,10 +45,10 @@ export function Features() {
     <section id="features" className="py-20 md:py-28 bg-[#000000]">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-[12px] font-bold uppercase tracking-widest text-primary">
+          <p className="text-[14px] font-semibold uppercase tracking-[1.4px] text-[#faff69]">
             01 / FEATURES
           </p>
-          <h2 className="mt-4 text-balance text-[36px] leading-[1.30] font-semibold tracking-normal text-[#ffffff] md:text-[36px] font-[family-name:--font-inter]">
+          <h2 className="mt-4 text-balance text-[36px] leading-[1.30] font-bold tracking-normal text-[#ffffff] md:text-[36px] font-sans">
             Everything you need for secrets at scale
           </h2>
           <p className="mt-6 text-pretty text-[18px] text-[#a0a0a0] leading-[1.56] font-normal">
@@ -61,12 +61,12 @@ export function Features() {
           {features.map((feature, index) => (
             <div 
               key={index}
-              className="group rounded-[8px] border border-[#414141]/80 bg-[#141414] p-8 transition-colors hover:border-primary hover:shadow-[0px_4px_25px_rgba(0,0,0,0.14)_inset]"
+              className="card-standard group hover:border-[#faff69] hover:shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)] transition-all duration-300"
             >
-              <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-[4px] bg-[#000000] border border-[#414141]/80 text-primary">
+              <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-[4px] bg-[#000000] border border-border text-[#faff69] group-hover:bg-[#faff69] group-hover:text-black transition-colors">
                 <feature.icon className="h-6 w-6" />
               </div>
-              <h3 className="text-[20px] font-semibold text-[#ffffff] leading-[1.40] font-[family-name:--font-inter]">
+              <h3 className="text-[20px] font-semibold text-[#ffffff] leading-[1.40] font-sans">
                 {feature.title}
               </h3>
               <p className="mt-3 text-[16px] text-[#a0a0a0] leading-[1.50]">

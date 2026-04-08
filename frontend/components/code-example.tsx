@@ -111,10 +111,10 @@ export function CodeExample() {
     <section className="py-20 md:py-28 bg-[#000000]">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-[12px] font-bold uppercase tracking-widest text-primary">
+          <p className="text-[14px] font-semibold uppercase tracking-[1.4px] text-[#faff69]">
             02 / INTEGRATIONS
           </p>
-          <h2 className="mt-4 text-balance text-[36px] font-semibold tracking-normal text-[#ffffff] md:text-[36px] font-[family-name:--font-inter]">
+          <h2 className="mt-4 text-balance text-[36px] font-bold tracking-normal text-[#ffffff] md:text-[36px] font-sans">
             Works with your existing stack
           </h2>
           <p className="mt-6 text-pretty text-[18px] leading-[1.56] text-[#a0a0a0] font-normal">
@@ -123,18 +123,18 @@ export function CodeExample() {
         </div>
 
         <div className="mx-auto mt-20 max-w-4xl">
-          <div className="overflow-hidden rounded-[8px] border border-[#414141]/80 bg-[#141414]">
+          <div className="card-inset overflow-hidden !p-0">
             {/* Tabs */}
-            <div className="flex border-b border-[#414141]/80 bg-[#000000]">
+            <div className="flex border-b border-border bg-[#000000]">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    "px-6 py-4 text-[14px] font-bold uppercase tracking-widest transition-colors rounded-[2px]",
+                    "px-6 py-4 text-[13px] font-bold uppercase tracking-[1.4px] transition-all",
                     activeTab === tab.id
-                      ? "border-b-2 border-primary text-primary"
-                      : "text-[#a0a0a0] hover:text-[#ffffff]"
+                      ? "bg-[#141414] text-[#faff69] border-b-2 border-[#faff69]"
+                      : "text-[#a0a0a0] hover:text-[#ffffff] hover:bg-[#141414]"
                   )}
                 >
                   {tab.label}
@@ -143,17 +143,17 @@ export function CodeExample() {
             </div>
 
             {/* Code */}
-            <div className="overflow-x-auto p-8">
-              <pre className="font-[family-name:--font-inconsolata] text-[16px] font-semibold leading-relaxed">
+            <div className="overflow-x-auto p-8 bg-black/40">
+              <pre className="font-mono text-[16px] font-semibold leading-relaxed">
                 <code className="text-[#a0a0a0]">
                   {activeCode?.code.split('\n').map((line, i) => (
                     <div key={i} className="flex">
-                      <span className="mr-6 w-6 flex-shrink-0 text-right text-[#a0a0a0]/40">{i + 1}</span>
+                      <span className="mr-6 w-6 flex-shrink-0 text-right text-[#585858] font-normal">{i + 1}</span>
                       <span className="flex-1">
                         {line.includes('#') || line.startsWith('//') ? (
-                          <span className="text-[#a0a0a0]">{line}</span>
+                          <span className="text-[#585858] font-normal">{line}</span>
                         ) : line.includes('nan0') || line.includes('NAN0') ? (
-                          <span className="text-primary">{line}</span>
+                          <span className="text-[#faff69]">{line}</span>
                         ) : (
                           <span className="text-[#ffffff]">{line}</span>
                         )}

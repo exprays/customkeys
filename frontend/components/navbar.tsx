@@ -9,41 +9,41 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-[rgba(65,65,65,0.8)] bg-black">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-[4px] bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">n0</span>
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-[rgba(0,0,0,0.92)] backdrop-blur-xl">
+      <nav className="mx-auto flex items-center justify-between px-5 py-3 md:px-10 md:py-4">
+        <Link href="/" className="flex items-center gap-2">
+          <div className="flex h-[28px] w-[28px] items-center justify-center rounded-[4px] bg-[#faff69] text-[14px] font-black text-black">
+            n0
           </div>
-          <span className="text-xl font-bold tracking-tight text-white hover:text-primary transition-colors">nano</span>
+          <span className="text-[18px] font-bold tracking-tight text-white font-sans">nano</span>
         </Link>
 
         {/* Desktop Navigation */}
         <div className="hidden items-center gap-8 md:flex">
-          <Link href="#features" className="text-[14px] font-semibold uppercase tracking-[1.4px] text-[#a0a0a0] transition-colors hover:text-primary">
+          <Link href="#features" className="nav-link">
             Features
           </Link>
-          <Link href="#pricing" className="text-[14px] font-semibold uppercase tracking-[1.4px] text-[#a0a0a0] transition-colors hover:text-primary">
+          <Link href="#pricing" className="nav-link">
             Pricing
           </Link>
-          <Link href="#docs" className="text-[14px] font-semibold uppercase tracking-[1.4px] text-[#a0a0a0] transition-colors hover:text-primary">
+          <Link href="#docs" className="nav-link">
             Docs
           </Link>
-          <Link href="#changelog" className="text-[14px] font-semibold uppercase tracking-[1.4px] text-[#a0a0a0] transition-colors hover:text-primary">
+          <Link href="#changelog" className="nav-link">
             Changelog
           </Link>
         </div>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-4 md:flex">
           <Link href="/login">
-            <Button variant="ghost" size="sm" className="cursor-pointer rounded-[4px] border border-[#4f5100] px-8 text-white hover:bg-[#3a3a3a] hover:text-[#f4f692] active:text-[#f4f692] uppercase font-bold tracking-[1.4px]">
+            <button className="nav-link cursor-pointer">
               Sign In
-            </Button>
+            </button>
           </Link>
           <Link href="/login">
-            <Button size="sm" className="cursor-pointer rounded-[4px] border border-[#141414] bg-[#166534] px-6 text-white hover:bg-[#3a3a3a] active:text-[#f4f692] uppercase font-bold tracking-[1.4px]">
+            <button className="btn-forest px-4 py-2 font-bold uppercase tracking-[1.4px]">
               Get Started
-            </Button>
+            </button>
           </Link>
         </div>
 
