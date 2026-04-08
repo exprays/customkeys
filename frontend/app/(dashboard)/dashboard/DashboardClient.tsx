@@ -54,143 +54,159 @@ export default function DashboardClient() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      <div className="flex items-center justify-center h-full bg-black">
+        <div className="w-8 h-8 border-2 border-[#faff69] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   const stats = [
     { label: "Projects", value: projects.length, icon: FolderKanban, href: "/projects" },
-    { label: "Plan", value: org?.plan_tier ? org.plan_tier.charAt(0).toUpperCase() + org.plan_tier.slice(1) : "Free", icon: ShieldCheck, href: "#" },
-    { label: "Audit Events", value: recentAudit.length > 0 ? "Active" : "None", icon: ScrollText, href: "/audit" },
-    { label: "API Tokens", value: "Manage", icon: Key, href: "/tokens" },
+    { label: "Plan", value: org?.plan_tier ? org.plan_tier.toUpperCase() : "FREE", icon: ShieldCheck, href: "#" },
+    { label: "Audit Log", value: recentAudit.length > 0 ? "STABLE" : "IDLE", icon: ScrollText, href: "/audit" },
+    { label: "Auth", value: "SECURE", icon: Key, href: "/tokens" },
   ];
 
   const ACTION_COLORS: Record<string, string> = {
-    "secret.read": "text-blue-400",
-    "secret.write": "text-green-400",
-    "secret.delete": "text-red-400",
-    "secret.bulk_read": "text-purple-400",
-    "project.created": "text-indigo-400",
-    "token.created": "text-yellow-400",
-    "token.revoked": "text-orange-400",
+    "secret.read": "text-[#faff69]",
+    "secret.write": "text-white",
+    "secret.delete": "text-red-500",
+    "secret.bulk_read": "text-[#faff69]",
+    "project.created": "text-[#faff69]",
+    "token.created": "text-white",
+    "token.revoked": "text-red-500",
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-8 max-w-7xl mx-auto space-y-10">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">
-          {org?.name || "Dashboard"}
-        </h1>
-        <p className="text-gray-400 text-sm mt-1">
-          Manage your secrets and configuration
-        </p>
-        {org?.id && <CopyableId label="Org ID" value={org.id} />}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-[rgba(65,65,65,0.4)]">
+        <div>
+          <h1 className="text-4xl font-bold text-white tracking-tight uppercase">
+            {org?.name || "Vault Overview"}
+          </h1>
+          <p className="text-white/40 text-sm mt-2 font-mono uppercase tracking-widest">
+            Production Environment • Secure Access Enabled
+          </p>
+        </div>
+        {org?.id && (
+          <div className="bg-[#141414] border border-[rgba(65,65,65,0.8)] px-4 py-2 rounded-[4px]">
+            <CopyableId label="ORG_ID" value={org.id} />
+          </div>
+        )}
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
           <Link
             key={stat.label}
             href={stat.href}
-            className="surface p-4 hover:border-gray-700 transition-colors group"
+            className="group block bg-[#0a0a0a] border border-[rgba(65,65,65,0.8)] p-6 rounded-[4px] hover:border-[#faff69] transition-all duration-300"
           >
-            <div className="flex items-center justify-between mb-3">
-              <stat.icon size={16} className="text-gray-500 group-hover:text-indigo-400 transition-colors" />
-              <ArrowRight size={12} className="text-gray-700 group-hover:text-gray-500 transition-colors" />
+            <div className="flex items-center justify-between mb-6">
+              <div className="w-10 h-10 rounded-[4px] bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-[#faff69]/10 group-hover:border-[#faff69]/30 transition-colors">
+                <stat.icon size={20} className="text-white/40 group-hover:text-[#faff69] transition-colors" />
+              </div>
+              <ArrowRight size={16} className="text-white/20 group-hover:text-[#faff69] translate-x-0 group-hover:translate-x-1 transition-all" />
             </div>
-            <p className="text-xl font-bold text-white">{stat.value}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{stat.label}</p>
+            <p className="text-3xl font-bold text-white tracking-tight">{stat.value}</p>
+            <p className="text-[11px] font-bold text-white/30 uppercase tracking-[0.2em] mt-1">{stat.label}</p>
           </Link>
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-8">
         {/* Projects */}
-        <div className="surface p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-white">Recent Projects</h2>
+        <div className="bg-[#0a0a0a] border border-[rgba(65,65,65,0.8)] rounded-[4px] flex flex-col">
+          <div className="p-6 border-b border-[rgba(65,65,65,0.4)] flex items-center justify-between">
+            <h2 className="text-[13px] font-bold text-white uppercase tracking-[0.2em]">Active Projects</h2>
             <Link
               href="/projects"
-              className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+              className="text-[11px] font-bold text-[#faff69] hover:underline uppercase tracking-wider flex items-center gap-2"
             >
-              View all <ArrowRight size={12} />
+              Browse all <ArrowRight size={14} />
             </Link>
           </div>
 
-          {projects.length === 0 ? (
-            <div className="text-center py-8">
-              <FolderKanban size={32} className="text-gray-700 mx-auto mb-3" />
-              <p className="text-sm text-gray-500 mb-3">No projects yet</p>
-              <Link
-                href="/projects"
-                className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-              >
-                <Plus size={12} /> Create your first project
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {projects.slice(0, 5).map((p) => (
+          <div className="p-2 flex-1">
+            {projects.length === 0 ? (
+              <div className="text-center py-16">
+                <FolderKanban size={40} className="text-white/10 mx-auto mb-4" />
+                <p className="text-sm text-white/40 mb-6 uppercase tracking-widest font-mono">No Active Clusters Found</p>
                 <Link
-                  key={p.id}
-                  href={`/projects/${p.id}`}
-                  className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-800 transition-colors group"
+                  href="/projects"
+                  className="btn-neon inline-flex h-10 leading-10 items-center"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-indigo-900/40 border border-indigo-800/50 flex items-center justify-center flex-shrink-0">
-                    <FolderKanban size={14} className="text-indigo-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{p.name}</p>
-                    <p className="text-xs text-gray-500">{relativeTime(p.created_at)}</p>
-                  </div>
-                  <ArrowRight size={14} className="text-gray-700 group-hover:text-gray-400 transition-colors flex-shrink-0" />
+                  <Plus size={16} className="mr-2" /> Initialize Project
                 </Link>
-              ))}
-            </div>
-          )}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {projects.slice(0, 5).map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/projects/${p.id}`}
+                    className="flex items-center gap-4 p-4 rounded-[4px] hover:bg-white/5 transition-colors group border border-transparent hover:border-white/10"
+                  >
+                    <div className="w-10 h-10 rounded-[4px] bg-[#141414] border border-[rgba(65,65,65,0.8)] flex items-center justify-center flex-shrink-0 group-hover:border-[#faff69]/40">
+                      <FolderKanban size={18} className="text-white/40 group-hover:text-[#faff69]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-white truncate uppercase tracking-tight">{p.name}</p>
+                      <p className="text-[10px] text-white/40 font-mono uppercase mt-0.5">{relativeTime(p.created_at)}</p>
+                    </div>
+                    <ArrowRight size={18} className="text-white/10 group-hover:text-[#faff69] transition-colors flex-shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Recent audit events */}
-        <div className="surface p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-white">Recent Activity</h2>
+        <div className="bg-[#0a0a0a] border border-[rgba(65,65,65,0.8)] rounded-[4px] flex flex-col">
+          <div className="p-6 border-b border-[rgba(65,65,65,0.4)] flex items-center justify-between">
+            <h2 className="text-[13px] font-bold text-white uppercase tracking-[0.2em]">Security Audit</h2>
             <Link
               href="/audit"
-              className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+              className="text-[11px] font-bold text-[#faff69] hover:underline uppercase tracking-wider flex items-center gap-2"
             >
-              View all <ArrowRight size={12} />
+              Full Log <ArrowRight size={14} />
             </Link>
           </div>
 
-          {recentAudit.length === 0 ? (
-            <div className="text-center py-8">
-              <ScrollText size={32} className="text-gray-700 mx-auto mb-3" />
-              <p className="text-sm text-gray-500">No activity yet</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {recentAudit.map((event) => (
-                <div key={event.id} className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <span className={`text-xs font-mono font-medium ${ACTION_COLORS[event.action] || "text-gray-400"}`}>
-                      {event.action}
-                    </span>
-                    {event.metadata && typeof event.metadata === "object" && "key" in event.metadata && (
-                      <span className="text-xs text-gray-500 ml-1.5 font-mono">
-                        {String(event.metadata.key)}
-                      </span>
-                    )}
-                    <p className="text-xs text-gray-600 mt-0.5">{relativeTime(event.ts)}</p>
+          <div className="p-6 flex-1">
+            {recentAudit.length === 0 ? (
+              <div className="text-center py-16">
+                <ScrollText size={40} className="text-white/10 mx-auto mb-4" />
+                <p className="text-sm text-white/40 uppercase tracking-widest font-mono">Standby Mode</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {recentAudit.map((event) => (
+                  <div key={event.id} className="flex items-start gap-4">
+                    <div className="w-2 h-2 rounded-full bg-[#faff69] mt-1.5 flex-shrink-0 shadow-[0_0_8px_#faff69]" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[11px] font-mono font-bold uppercase ${ACTION_COLORS[event.action] || "text-white/60"}`}>
+                          {event.action.replace('.', ' :: ')}
+                        </span>
+                      </div>
+                      {event.metadata && typeof event.metadata === "object" && "key" in event.metadata && (
+                        <div className="mt-1 bg-[#141414] px-2 py-1 inline-block border border-white/5 rounded">
+                          <span className="text-[10px] text-white/50 font-mono">
+                            OBJID__{String(event.metadata.key).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <p className="text-[10px] text-white/30 font-mono mt-1 uppercase">{relativeTime(event.ts)}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

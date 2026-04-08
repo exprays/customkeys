@@ -37,13 +37,13 @@ function NavItem({ href, label, icon: Icon, exact, onClick }: {
       href={href}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+        "flex items-center gap-3 px-4 py-2.5 rounded-[4px] text-[13px] font-bold uppercase tracking-wider transition-all duration-200",
         active
-          ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/30"
-          : "text-gray-400 hover:text-white hover:bg-gray-800"
+          ? "bg-[#faff69] text-black border border-[#faff69]"
+          : "text-white/50 hover:text-white hover:bg-white/5 border border-transparent"
       )}
     >
-      <Icon size={16} />
+      <Icon size={16} strokeWidth={active ? 2.5 : 2} />
       {label}
     </Link>
   );
@@ -53,7 +53,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const [userEmail, setUserEmail] = useState("");
-  const [orgName, setOrgName] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isOnboarding = pathname?.startsWith("/onboarding");
@@ -63,12 +62,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setUserEmail(data.user.email || "");
     });
-    // Try to get org name from API
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/orgs/me`, {
-      headers: { Authorization: "" },
-    })
-      .then(() => {})
-      .catch(() => {});
   }, []);
 
   async function handleSignOut() {
@@ -83,40 +76,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-black">
       {/* Logo */}
-      <div className="px-4 py-5 border-b border-gray-800">
+      <div className="px-6 py-6 border-b border-[rgba(65,65,65,0.8)]">
         <Link href="/dashboard" className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-md bg-indigo-600 flex items-center justify-center flex-shrink-0">
-            <Lock size={14} className="text-white" />
+          <div className="w-8 h-8 rounded-[4px] bg-[#faff69] flex items-center justify-center flex-shrink-0">
+            <Lock size={16} className="text-black" />
           </div>
-          <span className="font-bold text-white tracking-tight">Nano</span>
-          <span className="ml-auto text-xs text-gray-600 font-mono">v0.1</span>
+          <div>
+            <span className="font-bold text-white tracking-tight block leading-none">NANO</span>
+            <span className="text-[10px] text-white/40 font-mono tracking-widest uppercase">Security</span>
+          </div>
         </Link>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+        <div className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-4 px-2">Management</div>
         {navItems.map((item) => (
           <NavItem key={item.href} {...item} onClick={() => setMobileOpen(false)} />
         ))}
       </nav>
 
       {/* User */}
-      <div className="px-3 py-4 border-t border-gray-800">
-        <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-gray-800/50">
-          <div className="w-7 h-7 rounded-full bg-indigo-900 border border-indigo-700 flex items-center justify-center flex-shrink-0">
-            <span className="text-xs font-semibold text-indigo-300">
+      <div className="px-4 py-6 border-t border-[rgba(65,65,65,0.8)]">
+        <div className="flex items-center gap-3 px-3 py-3 rounded-[4px] bg-[#141414] border border-[rgba(65,65,65,0.8)]">
+          <div className="w-8 h-8 rounded-full bg-[#faff69]/10 border border-[#faff69]/30 flex items-center justify-center flex-shrink-0">
+            <span className="text-xs font-bold text-[#faff69]">
               {userEmail.charAt(0).toUpperCase()}
             </span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-white truncate">{userEmail}</p>
-            <p className="text-xs text-gray-500">Free plan</p>
+            <p className="text-[11px] font-bold text-white truncate uppercase tracking-tight">{userEmail.split('@')[0]}</p>
+            <p className="text-[10px] text-white/40 font-mono tracking-tighter uppercase">Vault Admin</p>
           </div>
           <button
             onClick={handleSignOut}
-            className="text-gray-500 hover:text-gray-300 transition-colors p-1 rounded"
+            className="text-white/40 hover:text-[#faff69] transition-colors p-1"
             title="Sign out"
           >
             <LogOut size={14} />
@@ -127,17 +123,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-950">
+    <div className="flex h-screen overflow-hidden bg-black font-sans">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-56 flex-col border-r border-gray-800 bg-gray-950 flex-shrink-0">
+      <aside className="hidden md:flex w-64 flex-col border-r border-[rgba(65,65,65,0.8)] bg-black flex-shrink-0">
         <SidebarContent />
       </aside>
 
       {/* Mobile sidebar overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 h-full w-56 bg-gray-950 border-r border-gray-800 z-50">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <aside className="absolute left-0 top-0 h-full w-64 bg-black border-r border-[rgba(65,65,65,0.8)] z-50">
             <SidebarContent />
           </aside>
         </div>
@@ -146,19 +142,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile topbar */}
-        <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-gray-800">
-          <button onClick={() => setMobileOpen(true)} className="text-gray-400 hover:text-white">
+        <div className="md:hidden flex items-center justify-between px-6 py-4 border-b border-[rgba(65,65,65,0.8)] bg-black">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-[4px] bg-[#faff69] flex items-center justify-center">
+              <Lock size={14} className="text-black" />
+            </div>
+            <span className="font-bold text-white text-sm tracking-tight">NANO</span>
+          </div>
+          <button onClick={() => setMobileOpen(true)} className="text-white/60 hover:text-white">
             <Menu size={20} />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-indigo-600 flex items-center justify-center">
-              <Lock size={12} className="text-white" />
-            </div>
-            <span className="font-bold text-white text-sm">Nano</span>
-          </div>
         </div>
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto bg-black">
           {children}
         </main>
       </div>

@@ -30,8 +30,8 @@ export default function AuthLayout({
             <div>
               <p className="text-white/60 text-sm uppercase tracking-[0.2em] mb-4">You can easily</p>
               <h1 className="text-5xl md:text-6xl font-bold text-white leading-[1.1] tracking-tight">
-                Speed up your work <br />
-                with our <span className="text-[#faff69]">Web App</span>
+                Secure your credentials <br />
+                with <span className="text-[#faff69]">Nano</span>
               </h1>
             </div>
 
