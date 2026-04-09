@@ -117,7 +117,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("Nano API server starting on :%s (Phase 2)", port)
+		log.Printf("CustomKeys API server starting on :%s (Phase 2)", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			sentry.CaptureException(err)
 			log.Fatalf("Server error: %v", err)

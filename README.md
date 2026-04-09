@@ -1,4 +1,4 @@
-# Nano — Secrets & Config Manager
+# CustomKeys — Secrets & Config Manager
 
 > Secure, simple secrets management for engineering teams. No Vault cluster, no per-API-call pricing.
 
@@ -9,7 +9,7 @@
 ## Quick Start
 
 ```
-nano/
+customkeys/
 ├── backend/      # Go API server (Cloud Run)
 ├── frontend/     # Next.js 15 dashboard (Vercel)
 ├── docs/

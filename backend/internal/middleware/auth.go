@@ -358,7 +358,7 @@ func extractBearerToken(r *http.Request) string {
 	if strings.HasPrefix(auth, "Bearer ") {
 		return strings.TrimPrefix(auth, "Bearer ")
 	}
-	// Also allow nano_token_ prefix for API tokens in query string (CLI use)
+	// Also allow customkeys_token_ prefix for API tokens in query string (CLI use)
 	if q := r.URL.Query().Get("token"); q != "" {
 		return q
 	}

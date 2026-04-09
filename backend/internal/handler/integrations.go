@@ -34,7 +34,7 @@ func (h *Handler) GetCICDSnippet(w http.ResponseWriter, r *http.Request) {
 
 	apiURL := os.Getenv("APP_URL")
 	if apiURL == "" {
-		apiURL = "https://api.nano.dev"
+		apiURL = "https://api.customkeys.dev"
 	}
 
 	snippets := buildCICDSnippet(provider, apiURL, orgID.String(), eid.String())
@@ -49,13 +49,13 @@ func buildCICDSnippet(provider, apiURL, orgID, envID string) map[string]any {
 	case "github_actions":
 		return map[string]any{
 			"provider":    "github_actions",
-			"description": "Add NANO_TOKEN to GitHub Secrets, then use this step in your workflow:",
-			"workflow_step": fmt.Sprintf(`- name: Load secrets from Nano
+			"description": "Add CUSTOMKEYS_TOKEN to GitHub Secrets, then use this step in your workflow:",
+			"workflow_step": fmt.Sprintf(`- name: Load secrets from CustomKeys
   uses: actions/github-script@v7
   with:
     script: |
       const resp = await fetch('%s/v1/envs/%s/secrets/values', {
-        headers: { Authorization: 'Bearer ' + process.env.NANO_TOKEN }
+        headers: { Authorization: 'Bearer ' + process.env.CUSTOMKEYS_TOKEN }
       });
       const secrets = await resp.json();
       for (const [key, value] of Object.entries(secrets)) {
@@ -63,35 +63,35 @@ func buildCICDSnippet(provider, apiURL, orgID, envID string) map[string]any {
         core.setSecret(value);
       }
   env:
-    NANO_TOKEN: ${{ secrets.NANO_TOKEN }}`, apiURL, envID),
-			"env_var":        "NANO_TOKEN",
-			"secrets_to_add": []string{"NANO_TOKEN"},
+    CUSTOMKEYS_TOKEN: ${{ secrets.CUSTOMKEYS_TOKEN }}`, apiURL, envID),
+			"env_var":        "CUSTOMKEYS_TOKEN",
+			"secrets_to_add": []string{"CUSTOMKEYS_TOKEN"},
 		}
 	case "gitlab_ci":
 		return map[string]any{
 			"provider":    "gitlab_ci",
-			"description": "Add NANO_TOKEN to GitLab CI/CD Variables (masked), then add this to .gitlab-ci.yml:",
-			"ci_snippet": fmt.Sprintf(`load_nano_secrets:
+			"description": "Add CUSTOMKEYS_TOKEN to GitLab CI/CD Variables (masked), then add this to .gitlab-ci.yml:",
+			"ci_snippet": fmt.Sprintf(`load_customkeys_secrets:
   image: curlimages/curl:latest
   before_script:
     - |
-      curl -s -H "Authorization: Bearer $NANO_TOKEN" \
+      curl -s -H "Authorization: Bearer $CUSTOMKEYS_TOKEN" \
         %s/v1/envs/%s/secrets/values \
-        | jq -r 'to_entries[] | "export \(.key)=\(.value)"' > /tmp/nano_env
-      source /tmp/nano_env`, apiURL, envID),
-			"env_var": "NANO_TOKEN",
+        | jq -r 'to_entries[] | "export \(.key)=\(.value)"' > /tmp/customkeys_env
+      source /tmp/customkeys_env`, apiURL, envID),
+			"env_var": "CUSTOMKEYS_TOKEN",
 		}
 	case "circleci":
 		return map[string]any{
 			"provider":    "circleci",
-			"description": "Add NANO_TOKEN to CircleCI Context or Environment Variables, then add this orb step:",
+			"description": "Add CUSTOMKEYS_TOKEN to CircleCI Context or Environment Variables, then add this orb step:",
 			"config_snippet": fmt.Sprintf(`- run:
-    name: Load Nano secrets
+    name: Load CustomKeys secrets
     command: |
-      SECRETS=$(curl -s -H "Authorization: Bearer $NANO_TOKEN" \
+      SECRETS=$(curl -s -H "Authorization: Bearer $CUSTOMKEYS_TOKEN" \
         %s/v1/envs/%s/secrets/values)
       echo $SECRETS | jq -r 'to_entries[] | "\(.key)=\(.value)"' >> $BASH_ENV`, apiURL, envID),
-			"env_var": "NANO_TOKEN",
+			"env_var": "CUSTOMKEYS_TOKEN",
 		}
 	default:
 		return map[string]any{"error": "unsupported provider"}

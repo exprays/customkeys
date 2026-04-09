@@ -110,13 +110,13 @@ func (h *Handler) CreateAPIToken(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Generate a secure token: nano_ prefix for easy identification
+	// Generate a secure token: customkeys_ prefix for easy identification
 	rawToken, err := crypto.GenerateSecureToken(32)
 	if err != nil {
 		respond.Error(w, http.StatusInternalServerError, "failed to generate token")
 		return
 	}
-	plainToken := "nano_" + rawToken
+	plainToken := "customkeys_" + rawToken
 	tokenHash := crypto.HashToken(plainToken)
 
 	token, err := h.DB.CreateAPIToken(r.Context(), orgID, userID, req.Name, tokenHash, req.Scopes, req.ExpiresAt)

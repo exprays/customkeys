@@ -1,4 +1,4 @@
-# Nano — Setup Guide (Phase 1)
+# CustomKeys — Setup Guide (Phase 1)
 
 ## Prerequisites
 
@@ -27,7 +27,7 @@ From **Project Settings → API**:
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` → Project API Keys → `publishable`
 - `SUPABASE_SECRET_KEY` → Project API Keys → `secret` (server-only, never expose to browser)
 
-For backend JWT verification with modern Supabase projects, Nano uses JWKS from:
+For backend JWT verification with modern Supabase projects, CustomKeys uses JWKS from:
 `https://<project-ref>.supabase.co/auth/v1/.well-known/jwks.json`
 
 Legacy projects only:
@@ -150,7 +150,7 @@ chmod +x deploy.sh
 After the first deploy, set secrets via the console or CLI:
 
 ```bash
-gcloud run services update nano-api \
+gcloud run services update customkeys-api \
   --region us-central1 \
   --set-env-vars \
     APP_ENV=production,\
@@ -179,7 +179,7 @@ vercel
 # Follow the prompts, then set env vars in Vercel dashboard:
 # NEXT_PUBLIC_SUPABASE_URL
 # NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-# NEXT_PUBLIC_API_URL=https://nano-api-xxx.run.app
+# NEXT_PUBLIC_API_URL=https://customkeys-api-xxx.run.app
 # NEXT_PUBLIC_SENTRY_DSN (optional)
 ```
 
@@ -201,7 +201,7 @@ Or connect your GitHub repo to Vercel for automatic deploys.
 ```bash
 # 1. Health check
 curl https://your-cloud-run-url/health
-# Expected: {"status":"ok","service":"nano"}
+# Expected: {"status":"ok","service":"customkeys"}
 
 # 2. Sign up at your Vercel frontend URL
 # 3. Create an organization

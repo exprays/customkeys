@@ -1,4 +1,4 @@
-# Nano — Test Guide (Phase 1)
+# CustomKeys — Test Guide (Phase 1)
 
 No automated unit tests in Phase 1. Follow these manual steps to verify all features.
 
@@ -22,7 +22,7 @@ curl http://localhost:8080/health
 **Expected:**
 
 ```json
-{ "status": "ok", "service": "nano" }
+{ "status": "ok", "service": "customkeys" }
 ```
 
 ---
@@ -178,14 +178,14 @@ Add a second secret:
 
 **Expected:**
 
-- A green banner appears showing the full token (`nano_XXXX...`)
+- A green banner appears showing the full token (`customkeys_XXXX...`)
 - Copy the token immediately (it won't be shown again)
 
 Test the token via curl:
 
 ```bash
 # Replace with your token and environment ID (get eid from the URL when viewing secrets)
-curl -H "Authorization: Bearer nano_YOUR_TOKEN_HERE" \
+curl -H "Authorization: Bearer customkeys_YOUR_TOKEN_HERE" \
   http://localhost:8080/v1/envs/YOUR_ENV_ID/secrets/values
 ```
 
@@ -221,7 +221,7 @@ curl -H "Authorization: Bearer nano_YOUR_TOKEN_HERE" \
 Test that the revoked token no longer works:
 
 ```bash
-curl -H "Authorization: Bearer nano_YOUR_OLD_TOKEN" \
+curl -H "Authorization: Bearer customkeys_YOUR_OLD_TOKEN" \
   http://localhost:8080/v1/projects
 ```
 
