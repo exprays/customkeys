@@ -214,3 +214,87 @@ const (
 	CtxRole   ContextKey = "role"
 	CtxEmail  ContextKey = "email"
 )
+
+// ── Phase 3 models — append to existing model.go ────────────────────────────
+
+type DynamicBackend string
+
+const (
+	DynamicBackendPostgres DynamicBackend = "postgres"
+	DynamicBackendMySQL    DynamicBackend = "mysql"
+)
+
+type DynamicSecretConfig struct {
+	ID         uuid.UUID       `json:"id" db:"id"`
+	EnvID      uuid.UUID       `json:"env_id" db:"env_id"`
+	Name       string          `json:"name" db:"name"`
+	Backend    DynamicBackend  `json:"backend" db:"backend"`
+	ConfigJSON json.RawMessage `json:"-" db:"config_json"` // never expose DSN
+	CreatedBy  uuid.UUID       `json:"created_by" db:"created_by"`
+	CreatedAt  time.Time       `json:"created_at" db:"created_at"`
+	UpdatedAt  time.Time       `json:"updated_at" db:"updated_at"`
+}
+
+type DynamicSecretLease struct {
+	ID          uuid.UUID  `json:"id" db:"id"`
+	OrgID       uuid.UUID  `json:"org_id" db:"org_id"`
+	Backend     string     `json:"backend" db:"backend"`
+	ConfigID    uuid.UUID  `json:"config_id" db:"config_id"`
+	Username    string     `json:"username" db:"username"`
+	DatabaseURL string     `json:"-" db:"database_url"`
+	ExpiresAt   time.Time  `json:"expires_at" db:"expires_at"`
+	RevokedAt   *time.Time `json:"revoked_at" db:"revoked_at"`
+	CreatedBy   uuid.UUID  `json:"created_by" db:"created_by"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	// Only set on creation response
+	Password string `json:"password,omitempty"`
+}
+
+type SecretAccessLog struct {
+	ID         int64     `json:"id" db:"id"`
+	SecretID   uuid.UUID `json:"secret_id" db:"secret_id"`
+	OrgID      uuid.UUID `json:"org_id" db:"org_id"`
+	ActorID    uuid.UUID `json:"actor_id" db:"actor_id"`
+	ActorType  string    `json:"actor_type" db:"actor_type"`
+	AccessedAt time.Time `json:"accessed_at" db:"accessed_at"`
+	EnvID      uuid.UUID `json:"env_id" db:"env_id"`
+}
+
+// Analytics aggregation types (not DB-backed, computed)
+
+type SecretHeatmapEntry struct {
+	SecretID   uuid.UUID  `json:"secret_id"`
+	SecretKey  string     `json:"secret_key"`
+	EnvID      uuid.UUID  `json:"env_id"`
+	EnvName    string     `json:"env_name"`
+	Count      int        `json:"count"`
+	LastAccess *time.Time `json:"last_access"`
+}
+
+type UnusedSecret struct {
+	SecretID        uuid.UUID  `json:"secret_id"`
+	SecretKey       string     `json:"secret_key"`
+	EnvID           uuid.UUID  `json:"env_id"`
+	EnvName         string     `json:"env_name"`
+	CreatedAt       time.Time  `json:"created_at"`
+	LastAccess      *time.Time `json:"last_access"`
+	DaysSinceAccess *int       `json:"days_since_access"`
+}
+
+type IntegrationProvider string
+
+const (
+	ProviderGitHubActions IntegrationProvider = "github_actions"
+	ProviderGitLabCI      IntegrationProvider = "gitlab_ci"
+	ProviderCircleCI      IntegrationProvider = "circleci"
+)
+
+type IntegrationConfig struct {
+	ID         uuid.UUID           `json:"id" db:"id"`
+	OrgID      uuid.UUID           `json:"org_id" db:"org_id"`
+	Name       string              `json:"name" db:"name"`
+	Provider   IntegrationProvider `json:"provider" db:"provider"`
+	ConfigJSON json.RawMessage     `json:"config_json" db:"config_json"`
+	CreatedBy  uuid.UUID           `json:"created_by" db:"created_by"`
+	CreatedAt  time.Time           `json:"created_at" db:"created_at"`
+}
