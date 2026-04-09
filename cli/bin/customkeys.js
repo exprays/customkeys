@@ -16,10 +16,10 @@ const chalk = {
   dim: (t) => `\x1b[2m${t}\x1b[0m`,
 };
 
-const API_URL = process.env.NANO_API_URL || 'http://localhost:8080';
-const DASHBOARD_URL = process.env.NANO_DASHBOARD_URL || 'http://localhost:3000';
-const GLOBAL_CONFIG_PATH = path.join(os.homedir(), '.nano.json');
-const LOCAL_CONFIG_PATH = path.join(process.cwd(), '.nanorc');
+const API_URL = process.env.CUSTOMKEYS_API_URL || 'http://localhost:8080';
+const DASHBOARD_URL = process.env.CUSTOMKEYS_DASHBOARD_URL || 'http://localhost:3000';
+const GLOBAL_CONFIG_PATH = path.join(os.homedir(), '.customkeys.json');
+const LOCAL_CONFIG_PATH = path.join(process.cwd(), '.customkeysrc');
 
 async function getConfig() {
   try {
@@ -52,7 +52,7 @@ async function saveLocalConfig(cfg) {
 async function apiRequest(endpoint, method = 'GET', body = null) {
   const cfg = await getConfig();
   if (!cfg.token) {
-    console.error(chalk.red('Not authenticated. Please run `nano auth login`.'));
+    console.error(chalk.red('Not authenticated. Please run `customkeys auth login`.'));
     process.exit(1);
   }
 
@@ -97,8 +97,8 @@ async function getEnvId(projectId, envName) {
 }
 
 program
-  .name('nano')
-  .description('Nano platform CLI')
+  .name('customkeys')
+  .description('CustomKeys platform CLI')
   .version('0.1.0');
 
 // Login
@@ -107,7 +107,7 @@ authCommand
   .command('login')
   .description('Authenticate with your account via the dashboard')
   .action(async () => {
-    console.log(chalk.blue('Authenticating with Nano...'));
+    console.log(chalk.blue('Authenticating with CustomKeys...'));
     const server = http.createServer();
     const port = Math.floor(Math.random() * 10000) + 10000;
 
@@ -142,7 +142,7 @@ authCommand
 
 // Link
 program.command('link')
-  .description('Link the current directory to a Nano project')
+  .description('Link the current directory to a CustomKeys project')
   .action(async () => {
     const res = await apiRequest('/v1/projects');
     const projects = res?.projects || res;
@@ -174,7 +174,7 @@ secretCommand
   .action(async (key, options) => {
     const local = await getLocalConfig();
     if (!local.projectId) {
-      console.error(chalk.red('Project not linked. Run `nano link` first.'));
+      console.error(chalk.red('Project not linked. Run `customkeys link` first.'));
       process.exit(1);
     }
 
@@ -196,7 +196,7 @@ secretCommand
   .action(async (key, options) => {
     const local = await getLocalConfig();
     if (!local.projectId) {
-      console.error(chalk.red('Project not linked. Run `nano link` first.'));
+      console.error(chalk.red('Project not linked. Run `customkeys link` first.'));
       process.exit(1);
     }
     const envId = await getEnvId(local.projectId, options.env);
@@ -234,7 +234,7 @@ program
 
     const local = await getLocalConfig();
     if (!local.projectId) {
-      console.error(chalk.red('Project not linked. Run `nano link` first.'));
+      console.error(chalk.red('Project not linked. Run `customkeys link` first.'));
       process.exit(1);
     }
 

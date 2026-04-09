@@ -4,14 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>dev.nano</groupId>
-    <artifactId>nano-sdk</artifactId>
+    <groupId>dev.customkeys</groupId>
+    <artifactId>customkeys-sdk</artifactId>
     <version>3.0.0</version>
     <packaging>jar</packaging>
 
-    <name>Nano Java SDK</name>
-    <description>Official Java SDK for Nano secrets manager</description>
-    <url>https://github.com/nan0/nano</url>
+    <name>CustomKeys Java SDK</name>
+    <description>Official Java SDK for CustomKeys secrets manager</description>
+    <url>https://github.com/customkeys/customkeys</url>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>

@@ -1,4 +1,4 @@
-"""Nano Python SDK — secrets & config manager client."""
+"""CustomKeys Python SDK — secrets & config manager client."""
 from __future__ import annotations
 
 import hashlib
@@ -13,7 +13,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_BASE_URL = "https://api.nano.dev"
+DEFAULT_BASE_URL = "https://api.customkeys.dev"
 DEFAULT_TTL = 60  # seconds
 DEFAULT_CACHE_SIZE = 500
 
@@ -53,8 +53,8 @@ class _LRUCache:
             return dict(self._store)
 
 
-class NanoClient:
-    """Thread-safe Nano secrets client with in-process LRU cache."""
+class CustomKeysClient:
+    """Thread-safe CustomKeys secrets client with in-process LRU cache."""
 
     def __init__(
         self,
@@ -116,16 +116,16 @@ class NanoClient:
                 for k, v in data.items():
                     self._cache.set(k, str(v))
                 self._cache_ts = time.time()
-                logger.debug("Nano: refreshed %d secrets", len(data))
+                logger.debug("CustomKeys: refreshed %d secrets", len(data))
         except Exception as exc:
-            logger.warning("Nano: bulk pull failed: %s", exc)
+            logger.warning("CustomKeys: bulk pull failed: %s", exc)
 
     def _request(self, method: str, path: str, body: Any = None) -> Any:
         url = self._base_url + path
         headers = {
             "Authorization": f"Bearer {self._token}",
             "Content-Type": "application/json",
-            "User-Agent": "nano-python-sdk/2.0",
+            "User-Agent": "customkeys-python-sdk/2.0",
         }
         data = json.dumps(body).encode() if body else None
         req = urllib.request.Request(url, data=data, headers=headers, method=method)
@@ -139,7 +139,7 @@ class NanoClient:
             self._ws_thread = threading.Thread(target=self._ws_loop, daemon=True)
             self._ws_thread.start()
         except ImportError:
-            logger.debug("Nano: websocket-client not installed, using polling")
+            logger.debug("CustomKeys: websocket-client not installed, using polling")
             self._poll_thread = threading.Thread(target=self._poll_loop, daemon=True)
             self._poll_thread.start()
 
@@ -168,7 +168,7 @@ class NanoClient:
                 pass
 
         def on_error(ws, error) -> None:
-            logger.debug("Nano WS error: %s", error)
+            logger.debug("CustomKeys WS error: %s", error)
 
         def on_close(ws, *args) -> None:
             if not self._stop.is_set():

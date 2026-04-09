@@ -1,6 +1,6 @@
-# Nano Java SDK
+# CustomKeys Java SDK
 
-Official Java SDK for the Nano secrets & config manager.
+Official Java SDK for the CustomKeys secrets & config manager.
 
 ## Requirements
 
@@ -12,25 +12,25 @@ Official Java SDK for the Nano secrets & config manager.
 ### Maven
 ```xml
 <dependency>
-    <groupId>dev.nano</groupId>
-    <artifactId>nano-sdk</artifactId>
+    <groupId>dev.customkeys</groupId>
+    <artifactId>customkeys-sdk</artifactId>
     <version>3.0.0</version>
 </dependency>
 ```
 
 ### Gradle
 ```groovy
-implementation 'dev.nano:nano-sdk:3.0.0'
+implementation 'dev.customkeys:customkeys-sdk:3.0.0'
 ```
 
 ## Usage
 
 ```java
-import dev.nano.sdk.NanoClient;
+import dev.customkeys.sdk.CustomKeysClient;
 
-NanoClient client = NanoClient.builder()
-    .token(System.getenv("NANO_TOKEN"))
-    .env(System.getenv("NANO_ENV_ID"))
+CustomKeysClient client = CustomKeysClient.builder()
+    .token(System.getenv("CUSTOMKEYS_TOKEN"))
+    .env(System.getenv("CUSTOMKEYS_ENV_ID"))
     .build();
 
 String dbPass = client.get("DATABASE_PASSWORD");
@@ -45,25 +45,25 @@ client.close();
 
 ```java
 @Configuration
-public class NanoConfig {
+public class CustomKeysConfig {
     @Bean
-    public NanoClient nanoClient(
-        @Value("${nano.token}") String token,
-        @Value("${nano.env}") String env
+    public CustomKeysClient customKeysClient(
+        @Value("${customkeys.token}") String token,
+        @Value("${customkeys.env}") String env
     ) {
-        return NanoClient.builder().token(token).env(env).build();
+        return CustomKeysClient.builder().token(token).env(env).build();
     }
 }
 
 @Service
 public class DatabaseService {
-    private final NanoClient nano;
+    private final CustomKeysClient customKeys;
     
     public DataSource buildDataSource() {
         return DataSourceBuilder.create()
-            .url(nano.get("DATABASE_URL"))
-            .username(nano.get("DATABASE_USER"))
-            .password(nano.get("DATABASE_PASSWORD"))
+            .url(customKeys.get("DATABASE_URL"))
+            .username(customKeys.get("DATABASE_USER"))
+            .password(customKeys.get("DATABASE_PASSWORD"))
             .build();
     }
 }

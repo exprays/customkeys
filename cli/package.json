@@ -1,10 +1,10 @@
 {
-  "name": "@superxepic/nano-cli",
+  "name": "@superxepic/customkeys",
   "version": "1.0.1",
-  "description": "Nano platform CLI",
+  "description": "CustomKeys platform CLI",
   "main": "index.js",
   "bin": {
-    "nano": "bin/nano.js"
+    "customkeys": "bin/customkeys.js"
   },
   "files": [
     "bin"

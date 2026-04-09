@@ -1,9 +1,9 @@
-// @nano-sdk/node — Official Node.js SDK for Nano secrets manager
+// @customkeys-sdk/node — Official Node.js SDK for CustomKeys secrets manager
 const https = require('https');
 const http = require('http');
 const { EventEmitter } = require('events');
 
-const DEFAULT_BASE_URL = 'https://api.nano.dev';
+const DEFAULT_BASE_URL = 'https://api.customkeys.dev';
 const DEFAULT_TTL_MS = 60_000;
 const DEFAULT_CACHE_SIZE = 500;
 
@@ -30,11 +30,11 @@ class LRUCache {
   clear() { this.map.clear(); }
 }
 
-class NanoClient extends EventEmitter {
+class CustomKeysClient extends EventEmitter {
   constructor({ token, env, baseURL = DEFAULT_BASE_URL, ttl = DEFAULT_TTL_MS, cacheSize = DEFAULT_CACHE_SIZE } = {}) {
     super();
-    if (!token) throw new Error('Nano: token is required');
-    if (!env) throw new Error('Nano: env (environment ID) is required');
+    if (!token) throw new Error('CustomKeys: token is required');
+    if (!env) throw new Error('CustomKeys: env (environment ID) is required');
     this.token = token;
     this.envID = env;
     this.baseURL = baseURL.replace(/\/$/, '');
@@ -135,7 +135,7 @@ class NanoClient extends EventEmitter {
         headers: {
           Authorization: `Bearer ${this.token}`,
           'Content-Type': 'application/json',
-          'User-Agent': 'nano-node-sdk/2.0',
+          'User-Agent': 'customkeys-node-sdk/2.0',
         },
       };
       const req = lib.request(options, (res) => {
@@ -158,4 +158,4 @@ class NanoClient extends EventEmitter {
   }
 }
 
-module.exports = { NanoClient };
+module.exports = { CustomKeysClient };

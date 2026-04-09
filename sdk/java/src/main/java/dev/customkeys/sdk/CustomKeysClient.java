@@ -1,4 +1,4 @@
-package dev.nano.sdk;
+package dev.customkeys.sdk;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
@@ -12,20 +12,20 @@ import java.util.concurrent.atomic.*;
 import java.util.logging.Logger;
 
 /**
- * NanoClient — Official Java SDK for Nano secrets manager.
+ * CustomKeysClient — Official Java SDK for CustomKeys secrets manager.
  *
  * <pre>{@code
- * NanoClient client = NanoClient.builder()
- *     .token(System.getenv("NANO_TOKEN"))
- *     .env(System.getenv("NANO_ENV_ID"))
+ * CustomKeysClient client = CustomKeysClient.builder()
+ *     .token(System.getenv("CUSTOMKEYS_TOKEN"))
+ *     .env(System.getenv("CUSTOMKEYS_ENV_ID"))
  *     .build();
  * String dbPass = client.get("DATABASE_PASSWORD");
  * }</pre>
  */
-public class NanoClient implements AutoCloseable {
+public class CustomKeysClient implements AutoCloseable {
 
-    private static final Logger LOG = Logger.getLogger(NanoClient.class.getName());
-    private static final String DEFAULT_BASE_URL = "https://api.nano.dev";
+    private static final Logger LOG = Logger.getLogger(CustomKeysClient.class.getName());
+    private static final String DEFAULT_BASE_URL = "https://api.customkeys.dev";
     private static final int DEFAULT_CACHE_SIZE = 500;
     private static final long DEFAULT_TTL_SECONDS = 60;
 
@@ -36,7 +36,7 @@ public class NanoClient implements AutoCloseable {
     private final HttpClient http;
     private final ObjectMapper mapper = new ObjectMapper();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "nano-refresh");
+        Thread t = new Thread(r, "customkeys-refresh");
         t.setDaemon(true);
         return t;
     });
@@ -46,7 +46,7 @@ public class NanoClient implements AutoCloseable {
     private final AtomicLong cacheTimestamp = new AtomicLong(0);
     private final Object refreshLock = new Object();
 
-    private NanoClient(Builder builder) {
+    private CustomKeysClient(Builder builder) {
         this.token = Objects.requireNonNull(builder.token, "token is required");
         this.envId = Objects.requireNonNull(builder.envId, "env is required");
         this.baseUrl = builder.baseUrl != null ? builder.baseUrl.replaceAll("/$", "") : DEFAULT_BASE_URL;
@@ -93,7 +93,7 @@ public class NanoClient implements AutoCloseable {
                 HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(baseUrl + "/v1/envs/" + envId + "/secrets/values"))
                     .header("Authorization", "Bearer " + token)
-                    .header("User-Agent", "nano-java-sdk/3.0")
+                    .header("User-Agent", "customkeys-java-sdk/3.0")
                     .GET()
                     .timeout(Duration.ofSeconds(10))
                     .build();
@@ -105,12 +105,12 @@ public class NanoClient implements AutoCloseable {
                     cache.clear();
                     cache.putAll(data);
                     cacheTimestamp.set(System.currentTimeMillis());
-                    LOG.fine("Nano: refreshed " + data.size() + " secrets");
+                    LOG.fine("CustomKeys: refreshed " + data.size() + " secrets");
                 } else {
-                    LOG.warning("Nano: bulk pull returned " + resp.statusCode());
+                    LOG.warning("CustomKeys: bulk pull returned " + resp.statusCode());
                 }
             } catch (Exception e) {
-                LOG.warning("Nano: refresh failed: " + e.getMessage());
+                LOG.warning("CustomKeys: refresh failed: " + e.getMessage());
             }
         }
     }
@@ -144,6 +144,6 @@ public class NanoClient implements AutoCloseable {
         public Builder baseUrl(String baseUrl) { this.baseUrl = baseUrl; return this; }
         public Builder ttlSeconds(long ttlSeconds) { this.ttlSeconds = ttlSeconds; return this; }
         public Builder cacheSize(int cacheSize) { this.cacheSize = cacheSize; return this; }
-        public NanoClient build() { return new NanoClient(this); }
+        public CustomKeysClient build() { return new CustomKeysClient(this); }
     }
 }
