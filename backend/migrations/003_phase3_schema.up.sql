@@ -45,10 +45,6 @@ CREATE INDEX idx_access_log_secret ON secret_access_log(secret_id, accessed_at D
 CREATE INDEX idx_access_log_org ON secret_access_log(org_id, accessed_at DESC);
 CREATE INDEX idx_access_log_env ON secret_access_log(env_id, accessed_at DESC);
 
--- Partial index for recent access (last 90 days) to keep index small
-CREATE INDEX idx_access_log_recent ON secret_access_log(org_id, accessed_at DESC)
-    WHERE accessed_at > NOW() - INTERVAL '90 days';
-
 -- CI/CD integration tokens (scoped, named differently from API tokens for clarity)
 CREATE TABLE integration_configs (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
