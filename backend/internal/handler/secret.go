@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/nan0/backend/internal/billing"
 	"github.com/nan0/backend/internal/model"
 	"github.com/nan0/backend/internal/rbac"
 	"github.com/nan0/backend/internal/references"
@@ -163,6 +164,17 @@ func (h *Handler) CreateSecret(w http.ResponseWriter, r *http.Request) {
 	if !rbac.CanWriteSecret(role, env.IsProtected) {
 		respond.Error(w, http.StatusForbidden, "insufficient permissions for this environment")
 		return
+	}
+
+	// ── Plan enforcement: secret count ──
+	org, _ := h.Store.GetOrganizationByID(r.Context(), orgID)
+	if org != nil {
+		limits := billing.GetLimits(org.PlanTier)
+		secretCount, _ := h.Store.CountOrgSecrets(r.Context(), orgID)
+		if billing.ExceedsLimit(limits.MaxSecrets, secretCount) {
+			respond.Error(w, http.StatusPaymentRequired, fmt.Sprintf("secret limit reached (%d on %s plan) — upgrade to create more", limits.MaxSecrets, org.PlanTier))
+			return
+		}
 	}
 
 	var req createSecretRequest

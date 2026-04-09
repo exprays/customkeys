@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/nan0/backend/internal/billing"
 	"github.com/nan0/backend/internal/model"
 	"github.com/nan0/backend/internal/rbac"
 	"github.com/nan0/backend/internal/respond"
@@ -47,6 +49,19 @@ func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 
 	if !rbac.IsAtLeast(role, model.RoleAdmin) {
 		respond.Error(w, http.StatusForbidden, "admin or owner role required")
+		return
+	}
+
+	// ── Plan enforcement: project count ──
+	org, err := h.Store.GetOrganizationByID(r.Context(), orgID)
+	if err != nil || org == nil {
+		respond.Error(w, http.StatusInternalServerError, "failed to get organization")
+		return
+	}
+	limits := billing.GetLimits(org.PlanTier)
+	projectCount, _ := h.Store.CountOrgProjects(r.Context(), orgID)
+	if billing.ExceedsLimit(limits.MaxProjects, projectCount) {
+		respond.Error(w, http.StatusPaymentRequired, fmt.Sprintf("project limit reached (%d on %s plan) — upgrade to create more", limits.MaxProjects, org.PlanTier))
 		return
 	}
 
@@ -192,6 +207,17 @@ func (h *Handler) CreateEnvironment(w http.ResponseWriter, r *http.Request) {
 	if err != nil || project == nil || project.OrgID != orgID {
 		respond.Error(w, http.StatusNotFound, "project not found")
 		return
+	}
+
+	// ── Plan enforcement: env count per project ──
+	org, _ := h.Store.GetOrganizationByID(r.Context(), orgID)
+	if org != nil {
+		limits := billing.GetLimits(org.PlanTier)
+		envCount, _ := h.Store.CountProjectEnvs(r.Context(), pid)
+		if billing.ExceedsLimit(limits.MaxEnvsPerProj, envCount) {
+			respond.Error(w, http.StatusPaymentRequired, fmt.Sprintf("environment limit reached (%d per project on %s plan) — upgrade to create more", limits.MaxEnvsPerProj, org.PlanTier))
+			return
+		}
 	}
 
 	var req createEnvironmentRequest

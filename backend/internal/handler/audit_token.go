@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/nan0/backend/internal/billing"
 	"github.com/nan0/backend/internal/crypto"
 	"github.com/nan0/backend/internal/model"
 	"github.com/nan0/backend/internal/rbac"
@@ -95,6 +97,17 @@ func (h *Handler) CreateAPIToken(w http.ResponseWriter, r *http.Request) {
 
 	if len(req.Scopes) == 0 {
 		req.Scopes = []string{"secrets:read"}
+	}
+
+	// ── Plan enforcement: API token count ──
+	org, _ := h.Store.GetOrganizationByID(r.Context(), orgID)
+	if org != nil {
+		limits := billing.GetLimits(org.PlanTier)
+		tokenCount, _ := h.Store.CountOrgAPITokens(r.Context(), orgID)
+		if billing.ExceedsLimit(limits.MaxAPITokens, tokenCount) {
+			respond.Error(w, http.StatusPaymentRequired, fmt.Sprintf("API token limit reached (%d on %s plan) — upgrade to create more", limits.MaxAPITokens, org.PlanTier))
+			return
+		}
 	}
 
 	// Generate a secure token: nano_ prefix for easy identification

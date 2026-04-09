@@ -13,7 +13,8 @@ import (
 	"github.com/nan0/backend/internal/respond"
 )
 
-func (h *Handler) GetCheckoutURL(w http.ResponseWriter, r *http.Request) {
+// CreateSubscription creates a Razorpay subscription and returns the hosted page URL.
+func (h *Handler) CreateSubscription(w http.ResponseWriter, r *http.Request) {
 	orgID, ok := getOrgID(r)
 	if !ok {
 		respond.Error(w, http.StatusForbidden, "no organization")
@@ -21,35 +22,167 @@ func (h *Handler) GetCheckoutURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		VariantID string `json:"variant_id"` // LemonSqueezy variant ID for the plan
+		PlanTier string `json:"plan_tier"` // "starter" or "business"
 	}
-	if err := respond.Decode(r, &req); err != nil || req.VariantID == "" {
-		respond.Error(w, http.StatusBadRequest, "variant_id required")
+	if err := respond.Decode(r, &req); err != nil || req.PlanTier == "" {
+		respond.Error(w, http.StatusBadRequest, "plan_tier required (starter or business)")
+		return
+	}
+
+	// Map tier to Razorpay plan ID
+	var rzpPlanID string
+	switch model.PlanTier(req.PlanTier) {
+	case model.PlanStarter:
+		rzpPlanID = os.Getenv("RZP_PLAN_STARTER")
+	case model.PlanBusiness:
+		rzpPlanID = os.Getenv("RZP_PLAN_BUSINESS")
+	default:
+		respond.Error(w, http.StatusBadRequest, "invalid plan_tier: must be starter or business")
+		return
+	}
+
+	if rzpPlanID == "" {
+		respond.Error(w, http.StatusServiceUnavailable, "billing plan not configured")
 		return
 	}
 
 	email, _ := r.Context().Value(model.CtxEmail).(string)
-	lsClient := billing.New(os.Getenv("LEMONSQUEEZY_API_KEY"), os.Getenv("LEMONSQUEEZY_SIGNING_SECRET"))
-	storeID := os.Getenv("LEMONSQUEEZY_STORE_ID")
 
-	url, err := lsClient.GetCheckoutURL(r.Context(), storeID, req.VariantID, orgID.String(), email)
+	// Get current seat count
+	members, _ := h.Store.ListOrgUsers(r.Context(), orgID)
+	quantity := len(members)
+	if quantity < 1 {
+		quantity = 1
+	}
+
+	rzpClient := billing.New(
+		os.Getenv("RAZORPAY_KEY_ID"),
+		os.Getenv("RAZORPAY_KEY_SECRET"),
+		os.Getenv("RAZORPAY_WEBHOOK_SECRET"),
+	)
+
+	sub, err := rzpClient.CreateSubscription(r.Context(), rzpPlanID, quantity, orgID.String(), email)
 	if err != nil {
-		respond.Error(w, http.StatusInternalServerError, fmt.Sprintf("checkout error: %v", err))
+		respond.Error(w, http.StatusInternalServerError, fmt.Sprintf("subscription error: %v", err))
 		return
 	}
-	respond.OK(w, map[string]string{"checkout_url": url})
+
+	// Store the subscription ID on the org immediately (status = created)
+	_ = h.Store.UpdateOrgBilling(r.Context(), orgID, sub.CustomerID, sub.ID, rzpPlanID,
+		model.PlanTier(req.PlanTier), billing.GetLimits(model.PlanTier(req.PlanTier)).AuditRetention, "created")
+
+	userID, _ := getUserID(r)
+	h.writeAudit(r, orgID, userID, "user", "billing.subscription_created", "organization", &orgID, map[string]any{
+		"plan":            req.PlanTier,
+		"subscription_id": sub.ID,
+	})
+
+	respond.OK(w, map[string]string{
+		"subscription_id": sub.ID,
+		"short_url":       sub.ShortURL,
+	})
 }
 
-func (h *Handler) LemonSqueezyWebhook(w http.ResponseWriter, r *http.Request) {
+// CancelSubscription cancels the current Razorpay subscription at end of billing cycle.
+func (h *Handler) CancelSubscription(w http.ResponseWriter, r *http.Request) {
+	orgID, ok := getOrgID(r)
+	if !ok {
+		respond.Error(w, http.StatusForbidden, "no organization")
+		return
+	}
+
+	org, err := h.Store.GetOrganizationByID(r.Context(), orgID)
+	if err != nil || org == nil {
+		respond.Error(w, http.StatusInternalServerError, "failed to get organization")
+		return
+	}
+
+	if org.RzpSubscriptionID == nil || *org.RzpSubscriptionID == "" {
+		respond.Error(w, http.StatusBadRequest, "no active subscription")
+		return
+	}
+
+	rzpClient := billing.New(
+		os.Getenv("RAZORPAY_KEY_ID"),
+		os.Getenv("RAZORPAY_KEY_SECRET"),
+		os.Getenv("RAZORPAY_WEBHOOK_SECRET"),
+	)
+
+	if err := rzpClient.CancelSubscription(r.Context(), *org.RzpSubscriptionID, true); err != nil {
+		respond.Error(w, http.StatusInternalServerError, fmt.Sprintf("cancel error: %v", err))
+		return
+	}
+
+	_ = h.Store.UpdateOrgSubscriptionStatus(r.Context(), orgID, "cancelled")
+
+	userID, _ := getUserID(r)
+	h.writeAudit(r, orgID, userID, "user", "billing.subscription_cancelled", "organization", &orgID, nil)
+
+	respond.OK(w, map[string]string{"status": "cancelled_at_period_end"})
+}
+
+// GetSubscriptionStatus returns the current billing/subscription info.
+func (h *Handler) GetSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
+	orgID, ok := getOrgID(r)
+	if !ok {
+		respond.Error(w, http.StatusForbidden, "no organization")
+		return
+	}
+
+	org, err := h.Store.GetOrganizationByID(r.Context(), orgID)
+	if err != nil || org == nil {
+		respond.Error(w, http.StatusInternalServerError, "failed to get org")
+		return
+	}
+
+	limits := billing.GetLimits(org.PlanTier)
+	members, _ := h.Store.ListOrgUsers(r.Context(), orgID)
+	secretCount, _ := h.Store.CountOrgSecrets(r.Context(), orgID)
+	projectCount, _ := h.Store.CountOrgProjects(r.Context(), orgID)
+	tokenCount, _ := h.Store.CountOrgAPITokens(r.Context(), orgID)
+
+	respond.OK(w, map[string]any{
+		"plan_tier":           org.PlanTier,
+		"subscription_status": org.SubscriptionStatus,
+		"current_period_end":  org.CurrentPeriodEnd,
+		"usage": map[string]any{
+			"seats":      len(members),
+			"secrets":    secretCount,
+			"projects":   projectCount,
+			"api_tokens": tokenCount,
+		},
+		"limits": map[string]any{
+			"max_seats":         limits.MaxSeats,
+			"max_secrets":       limits.MaxSecrets,
+			"max_projects":      limits.MaxProjects,
+			"max_envs_per_proj": limits.MaxEnvsPerProj,
+			"max_api_tokens":    limits.MaxAPITokens,
+			"audit_retention":   limits.AuditRetention,
+			"rotation":          limits.Rotation,
+			"dynamic_secrets":   limits.DynamicSecrets,
+			"ci_integrations":   limits.CIIntegrations,
+			"approvals":         limits.Approvals,
+			"analytics":         limits.Analytics,
+			"secret_versioning": limits.SecretVersioning,
+		},
+	})
+}
+
+// RazorpayWebhook handles Razorpay event webhooks.
+func (h *Handler) RazorpayWebhook(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		respond.Error(w, http.StatusBadRequest, "cannot read body")
 		return
 	}
 
-	lsClient := billing.New(os.Getenv("LEMONSQUEEZY_API_KEY"), os.Getenv("LEMONSQUEEZY_SIGNING_SECRET"))
-	sig := r.Header.Get("X-Signature")
-	if !lsClient.VerifyWebhookSignature(body, sig) {
+	rzpClient := billing.New(
+		os.Getenv("RAZORPAY_KEY_ID"),
+		os.Getenv("RAZORPAY_KEY_SECRET"),
+		os.Getenv("RAZORPAY_WEBHOOK_SECRET"),
+	)
+	sig := r.Header.Get("X-Razorpay-Signature")
+	if !rzpClient.VerifyWebhookSignature(body, sig) {
 		respond.Error(w, http.StatusUnauthorized, "invalid signature")
 		return
 	}
@@ -60,64 +193,73 @@ func (h *Handler) LemonSqueezyWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	switch event.Meta.EventName {
-	case "subscription_created", "subscription_updated", "subscription_resumed":
-		h.handleSubscriptionActive(r, event)
-	case "subscription_cancelled", "subscription_expired":
-		h.handleSubscriptionCancelled(r, event)
+	switch event.Event {
+	case "subscription.activated", "subscription.charged", "subscription.resumed":
+		h.handleRzpSubscriptionActive(r, event)
+	case "subscription.cancelled", "subscription.completed", "subscription.expired":
+		h.handleRzpSubscriptionCancelled(r, event)
+	case "subscription.paused":
+		h.handleRzpSubscriptionPaused(r, event)
 	}
 
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *Handler) handleSubscriptionActive(r *http.Request, event billing.WebhookEvent) {
-	var data billing.SubscriptionData
-	if err := json.Unmarshal(event.Data, &data); err != nil {
+func (h *Handler) handleRzpSubscriptionActive(r *http.Request, event billing.WebhookEvent) {
+	var sub billing.Subscription
+	if err := json.Unmarshal(event.Payload.Subscription.Entity, &sub); err != nil {
 		return
 	}
 
-	orgIDStr := event.Meta.CustomData["org_id"]
+	orgIDStr := sub.Notes["org_id"]
 	if orgIDStr == "" {
-		return
+		// Try lookup by subscription ID
+		org, err := h.Store.GetOrgByRzpSubscriptionID(r.Context(), sub.ID)
+		if err != nil || org == nil {
+			return
+		}
+		orgIDStr = org.ID.String()
 	}
 
-	orgID, err := parseUUID(orgIDStr)
+	orgID, err := uuid.Parse(orgIDStr)
 	if err != nil {
 		return
 	}
 
-	variantIDStr := fmt.Sprintf("%d", data.Attributes.VariantID)
-	planTier, retentionDays := billing.PlanFromVariantID(variantIDStr)
+	starterPlanID := os.Getenv("RZP_PLAN_STARTER")
+	businessPlanID := os.Getenv("RZP_PLAN_BUSINESS")
+	planTier, retentionDays := billing.PlanFromRazorpayPlanID(sub.PlanID, starterPlanID, businessPlanID)
 
-	// Map env var variant IDs to plan tiers
-	switch variantIDStr {
-	case os.Getenv("LS_VARIANT_TEAM"):
-		planTier, retentionDays = "team", 90
-	case os.Getenv("LS_VARIANT_BUSINESS"):
-		planTier, retentionDays = "business", 365
-	case os.Getenv("LS_VARIANT_ENTERPRISE"):
-		planTier, retentionDays = "enterprise", 3650
-	}
-
-	customerIDStr := fmt.Sprintf("%d", data.Attributes.CustomerID)
-	_ = h.Store.UpdateOrgBilling(r.Context(), orgID, customerIDStr, data.ID, variantIDStr,
-		model.PlanTier(planTier), retentionDays)
+	_ = h.Store.UpdateOrgBilling(r.Context(), orgID, sub.CustomerID, sub.ID, sub.PlanID,
+		planTier, retentionDays, "active")
 }
 
-func (h *Handler) handleSubscriptionCancelled(r *http.Request, event billing.WebhookEvent) {
-	var data billing.SubscriptionData
-	if err := json.Unmarshal(event.Data, &data); err != nil {
+func (h *Handler) handleRzpSubscriptionCancelled(r *http.Request, event billing.WebhookEvent) {
+	var sub billing.Subscription
+	if err := json.Unmarshal(event.Payload.Subscription.Entity, &sub); err != nil {
 		return
 	}
-	org, err := h.Store.GetOrgByLSSubscriptionID(r.Context(), data.ID)
+
+	org, err := h.Store.GetOrgByRzpSubscriptionID(r.Context(), sub.ID)
 	if err != nil || org == nil {
 		return
 	}
+
+	// Downgrade to free
 	_ = h.Store.UpdateOrgPlan(r.Context(), org.ID, model.PlanFree, 7)
+	_ = h.Store.UpdateOrgSubscriptionStatus(r.Context(), org.ID, "cancelled")
 }
 
-func parseUUID(s string) (uuid.UUID, error) {
-	// placeholder — in real code: uuid.Parse(s)
-	var emptyUUID uuid.UUID
-	return emptyUUID, nil
+func (h *Handler) handleRzpSubscriptionPaused(r *http.Request, event billing.WebhookEvent) {
+	var sub billing.Subscription
+	if err := json.Unmarshal(event.Payload.Subscription.Entity, &sub); err != nil {
+		return
+	}
+
+	org, err := h.Store.GetOrgByRzpSubscriptionID(r.Context(), sub.ID)
+	if err != nil || org == nil {
+		return
+	}
+
+	_ = h.Store.UpdateOrgSubscriptionStatus(r.Context(), org.ID, "paused")
 }

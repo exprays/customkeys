@@ -11,7 +11,7 @@ type PlanTier string
 
 const (
 	PlanFree       PlanTier = "free"
-	PlanTeam       PlanTier = "team"
+	PlanStarter    PlanTier = "starter"
 	PlanBusiness   PlanTier = "business"
 	PlanEnterprise PlanTier = "enterprise"
 )
@@ -26,17 +26,19 @@ const (
 )
 
 type Organization struct {
-	ID                 uuid.UUID `json:"id" db:"id"`
-	Name               string    `json:"name" db:"name"`
-	PlanTier           PlanTier  `json:"plan_tier" db:"plan_tier"`
-	LSCustomerID       *string   `json:"ls_customer_id,omitempty" db:"ls_customer_id"`
-	LSSubscriptionID   *string   `json:"ls_subscription_id,omitempty" db:"ls_subscription_id"`
-	LSVariantID        *string   `json:"ls_variant_id,omitempty" db:"ls_variant_id"`
-	SeatCount          int       `json:"seat_count" db:"seat_count"`
-	BillingEmail       *string   `json:"billing_email,omitempty" db:"billing_email"`
-	AuditRetentionDays int       `json:"audit_retention_days" db:"audit_retention_days"`
-	CreatedAt          time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at" db:"updated_at"`
+	ID                   uuid.UUID  `json:"id" db:"id"`
+	Name                 string     `json:"name" db:"name"`
+	PlanTier             PlanTier   `json:"plan_tier" db:"plan_tier"`
+	RzpCustomerID        *string    `json:"rzp_customer_id,omitempty" db:"rzp_customer_id"`
+	RzpSubscriptionID    *string    `json:"rzp_subscription_id,omitempty" db:"rzp_subscription_id"`
+	RzpPlanID            *string    `json:"rzp_plan_id,omitempty" db:"rzp_plan_id"`
+	SeatCount            int        `json:"seat_count" db:"seat_count"`
+	BillingEmail         *string    `json:"billing_email,omitempty" db:"billing_email"`
+	AuditRetentionDays   int        `json:"audit_retention_days" db:"audit_retention_days"`
+	SubscriptionStatus   *string    `json:"subscription_status,omitempty" db:"subscription_status"`
+	CurrentPeriodEnd     *time.Time `json:"current_period_end,omitempty" db:"current_period_end"`
+	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt            time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 type User struct {

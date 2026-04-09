@@ -158,11 +158,11 @@ func (h *Handler) RevokeInvitation(w http.ResponseWriter, r *http.Request) {
 func seatLimitForPlan(plan model.PlanTier) int {
 	switch plan {
 	case model.PlanFree:
-		return 5
-	case model.PlanTeam:
-		return 25
+		return 1
+	case model.PlanStarter:
+		return 10
 	case model.PlanBusiness:
-		return 200
+		return 100
 	default:
 		return 0 // unlimited for enterprise
 	}

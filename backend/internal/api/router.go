@@ -11,11 +11,14 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 
+	"github.com/nan0/backend/internal/billing"
 	"github.com/nan0/backend/internal/cache"
 	"github.com/nan0/backend/internal/crypto"
 	"github.com/nan0/backend/internal/email"
 	"github.com/nan0/backend/internal/handler"
 	"github.com/nan0/backend/internal/middleware"
+	"github.com/nan0/backend/internal/model"
+	"github.com/nan0/backend/internal/respond"
 	"github.com/nan0/backend/internal/rotation"
 	"github.com/nan0/backend/internal/store"
 	"github.com/nan0/backend/internal/ws"
@@ -32,6 +35,30 @@ type Config struct {
 	Email          *email.Client
 	Hub            *ws.Hub
 	Worker         *rotation.Worker
+}
+
+// requirePlan returns middleware that blocks the request if the org's plan is below minPlan.
+func requirePlan(db *store.Store, minPlan model.PlanTier) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			orgUUID, ok := middleware.GetOrgUUIDFromCtx(r)
+			if !ok {
+				respond.Error(w, http.StatusForbidden, "no organization")
+				return
+			}
+			org, err := db.GetOrganizationByID(r.Context(), orgUUID)
+			if err != nil || org == nil {
+				respond.Error(w, http.StatusInternalServerError, "failed to verify plan")
+				return
+			}
+			if !billing.IsAtLeastPlan(org.PlanTier, minPlan) {
+				respond.Error(w, http.StatusPaymentRequired,
+					"this feature requires the "+string(minPlan)+" plan or higher — upgrade at /billing")
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func NewRouter(cfg Config) http.Handler {
@@ -80,7 +107,7 @@ func NewRouter(cfg Config) http.Handler {
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok","service":"nano","phase":"2"}`))
+		w.Write([]byte(`{"status":"ok","service":"nano","phase":"3"}`))
 	})
 
 	h := &handler.Handler{
@@ -96,9 +123,13 @@ func NewRouter(cfg Config) http.Handler {
 
 	jwtAuth := middleware.AuthMiddleware(cfg.JWTSecret, cfg.SupabaseURL, cfg.DB)
 
+	// Plan-gating middleware shortcuts
+	starterGate := requirePlan(cfg.DB, model.PlanStarter)
+	businessGate := requirePlan(cfg.DB, model.PlanBusiness)
+
 	r.Route("/v1", func(r chi.Router) {
 		// Public webhook — no auth (verified by signature)
-		r.Post("/webhooks/lemonsqueezy", h.LemonSqueezyWebhook)
+		r.Post("/webhooks/razorpay", h.RazorpayWebhook)
 
 		// Invitation accept (needs JWT but no org)
 		r.With(jwtAuth).Get("/invitations/accept", h.AcceptInvitation)
@@ -108,76 +139,84 @@ func NewRouter(cfg Config) http.Handler {
 		r.With(jwtAuth).Get("/orgs/me", h.GetMyOrg)
 		r.With(jwtAuth).Get("/me", h.GetMe)
 
-		// Protected routes
+		// Protected routes (require JWT + org)
 		r.Group(func(r chi.Router) {
 			r.Use(jwtAuth)
 			r.Use(middleware.RequireOrg)
 
-			// Projects
+			// ── Core (all plans) ──
 			r.Get("/projects", h.ListProjects)
 			r.Post("/projects", h.CreateProject)
 			r.Get("/projects/{pid}", h.GetProject)
 			r.Delete("/projects/{pid}", h.DeleteProject)
 
-			// Environments
 			r.Get("/projects/{pid}/envs", h.ListEnvironments)
 			r.Post("/projects/{pid}/envs", h.CreateEnvironment)
 
-			// Secrets
 			r.Get("/projects/{pid}/envs/{eid}/secrets", h.ListSecrets)
 			r.Post("/projects/{pid}/envs/{eid}/secrets", h.CreateSecret)
 			r.Get("/secrets/{sid}", h.GetSecret)
 			r.Put("/secrets/{sid}", h.UpdateSecret)
 			r.Delete("/secrets/{sid}", h.DeleteSecret)
-			r.Get("/secrets/{sid}/versions", h.ListSecretVersions)
 
-			// Rotation (Phase 2)
-			r.Post("/secrets/{sid}/rotation", h.CreateRotationSchedule)
-			r.Get("/secrets/{sid}/rotation", h.GetRotationSchedule)
-			r.Delete("/rotation/{schedid}", h.DeleteRotationSchedule)
-			r.Post("/secrets/{sid}/rotate", h.TriggerRotation)
-			r.Get("/secrets/{sid}/rotation/history", h.ListRotationHistory)
+			r.Get("/orgs/me/audit", h.ListAuditEvents)
+			r.Get("/tokens", h.ListAPITokens)
+			r.Post("/tokens", h.CreateAPIToken)
+			r.Delete("/tokens/{tid}", h.RevokeAPIToken)
 
-			// Approvals (Phase 2)
-			r.Get("/approvals", h.ListApprovals)
-			r.Post("/approvals/{aid}/resolve", h.ResolveApproval)
+			// ── Billing (all plans) ──
+			r.Post("/billing/subscribe", h.CreateSubscription)
+			r.Post("/billing/cancel", h.CancelSubscription)
+			r.Get("/billing/status", h.GetSubscriptionStatus)
+			r.Get("/orgs/me/usage", h.GetOrgUsage)
 
-			// Members & Invitations (Phase 2)
+			// ── Members & Invitations (all plans, seat limits enforced in handler) ──
 			r.Get("/orgs/me/members", h.ListMembers)
 			r.Post("/orgs/me/invitations", h.InviteMember)
 			r.Get("/orgs/me/invitations", h.ListInvitations)
 			r.Delete("/orgs/me/invitations/{iid}", h.RevokeInvitation)
 
-			// Audit log
-			r.Get("/orgs/me/audit", h.ListAuditEvents)
+			// ── Starter+ features (rotation, versioning, websocket) ──
+			r.Group(func(r chi.Router) {
+				r.Use(starterGate)
 
-			// API Tokens
-			r.Get("/tokens", h.ListAPITokens)
-			r.Post("/tokens", h.CreateAPIToken)
-			r.Delete("/tokens/{tid}", h.RevokeAPIToken)
+				r.Get("/secrets/{sid}/versions", h.ListSecretVersions)
 
-			// Billing (Phase 2)
-			r.Post("/billing/checkout", h.GetCheckoutURL)
-			r.Get("/orgs/me/usage", h.GetOrgUsage)
+				// Rotation (Phase 2)
+				r.Post("/secrets/{sid}/rotation", h.CreateRotationSchedule)
+				r.Get("/secrets/{sid}/rotation", h.GetRotationSchedule)
+				r.Delete("/rotation/{schedid}", h.DeleteRotationSchedule)
+				r.Post("/secrets/{sid}/rotate", h.TriggerRotation)
+				r.Get("/secrets/{sid}/rotation/history", h.ListRotationHistory)
+			})
 
-			// Phase 3: Dynamic secrets
-			r.Get("/projects/{pid}/envs/{eid}/dynamic", h.ListDynamicConfigs)
-			r.Post("/projects/{pid}/envs/{eid}/dynamic", h.CreateDynamicConfig)
-			r.Delete("/dynamic/{cfgid}", h.DeleteDynamicConfig)
-			r.Post("/dynamic/{cfgid}/generate", h.GenerateDynamicSecret)
-			r.Post("/dynamic/leases/{lid}/revoke", h.RevokeDynamicLease)
-			r.Get("/orgs/me/dynamic/leases", h.ListDynamicLeases)
+			// ── Business+ features (dynamic secrets, CI, approvals, analytics) ──
+			r.Group(func(r chi.Router) {
+				r.Use(businessGate)
 
-			// Phase 3: Analytics
-			r.Get("/orgs/me/analytics/heatmap", h.GetSecretHeatmap)
-			r.Get("/orgs/me/analytics/unused", h.GetUnusedSecrets)
-			r.Get("/secrets/{sid}/analytics", h.GetSecretTimeSeries)
+				// Approvals (Phase 2)
+				r.Get("/approvals", h.ListApprovals)
+				r.Post("/approvals/{aid}/resolve", h.ResolveApproval)
 
-			// Phase 3: CI/CD integrations
-			r.Get("/projects/{pid}/envs/{eid}/cicd-snippet", h.GetCICDSnippet)
-			r.Post("/orgs/me/integrations", h.CreateIntegrationConfig)
-			r.Get("/orgs/me/integrations", h.ListIntegrationConfigs)
-			r.Delete("/orgs/me/integrations/{iid}", h.DeleteIntegrationConfig)
+				// Phase 3: Dynamic secrets
+				r.Get("/projects/{pid}/envs/{eid}/dynamic", h.ListDynamicConfigs)
+				r.Post("/projects/{pid}/envs/{eid}/dynamic", h.CreateDynamicConfig)
+				r.Delete("/dynamic/{cfgid}", h.DeleteDynamicConfig)
+				r.Post("/dynamic/{cfgid}/generate", h.GenerateDynamicSecret)
+				r.Post("/dynamic/leases/{lid}/revoke", h.RevokeDynamicLease)
+				r.Get("/orgs/me/dynamic/leases", h.ListDynamicLeases)
+
+				// Phase 3: Analytics
+				r.Get("/orgs/me/analytics/heatmap", h.GetSecretHeatmap)
+				r.Get("/orgs/me/analytics/unused", h.GetUnusedSecrets)
+				r.Get("/secrets/{sid}/analytics", h.GetSecretTimeSeries)
+
+				// Phase 3: CI/CD integrations
+				r.Get("/projects/{pid}/envs/{eid}/cicd-snippet", h.GetCICDSnippet)
+				r.Post("/orgs/me/integrations", h.CreateIntegrationConfig)
+				r.Get("/orgs/me/integrations", h.ListIntegrationConfigs)
+				r.Delete("/orgs/me/integrations/{iid}", h.DeleteIntegrationConfig)
+			})
 		})
 
 		// SDK/API token routes
@@ -187,7 +226,7 @@ func NewRouter(cfg Config) http.Handler {
 			r.Get("/envs/{eid}/secrets/values", h.BulkPullSecrets)
 		})
 
-		// WebSocket (Phase 2)
+		// WebSocket (Phase 2) — requires Starter+
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.APITokenMiddleware(cfg.DB))
 			r.Get("/envs/{eid}/watch", func(w http.ResponseWriter, r *http.Request) {
