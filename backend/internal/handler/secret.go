@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -8,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/nan0/backend/internal/model"
 	"github.com/nan0/backend/internal/rbac"
+	"github.com/nan0/backend/internal/references"
 	"github.com/nan0/backend/internal/respond"
 )
 
@@ -116,10 +119,27 @@ func (h *Handler) GetSecret(w http.ResponseWriter, r *http.Request) {
 	secret.EncryptedValue = ""
 	secret.EncryptedDEK = ""
 
+	// Resolve ${secret:KEY} references
+	if references.HasReferences(secret.Value) {
+		fetcher := func(ctx context.Context, envID uuid.UUID, key string) (string, error) {
+			ref, err := h.Store.GetSecretByKey(ctx, envID, key)
+			if err != nil || ref == nil {
+				return "", fmt.Errorf("ref not found: %s", key)
+			}
+			return h.Crypto.Decrypt(ref.EncryptedValue, ref.EncryptedDEK)
+		}
+		resolved, err := references.Resolve(r.Context(), secret.Value, secret.EnvID, fetcher, 5)
+		if err == nil {
+			secret.Value = resolved
+		}
+	}
+
 	h.writeAudit(r, orgID, userID, "user", "secret.read", "secret", &sid, map[string]interface{}{
 		"key":    secret.Key,
 		"env_id": secret.EnvID.String(),
 	})
+	// Write access analytics log (fire-and-forget)
+	h.Store.WriteAccessLog(r.Context(), sid, orgID, userID, secret.EnvID, "user")
 
 	respond.OK(w, secret)
 }
@@ -380,6 +400,12 @@ func (h *Handler) BulkPullSecrets(w http.ResponseWriter, r *http.Request) {
 	h.writeAudit(r, orgID, userID, "user", "secret.bulk_read", "environment", &eid, map[string]interface{}{
 		"count": len(result),
 	})
+
+	// Log access for each secret for analytics
+	actorID, _ := getUserID(r)
+	for _, s := range secrets {
+		h.Store.WriteAccessLog(r.Context(), s.ID, orgID, actorID, eid, "api_token")
+	}
 
 	respond.OK(w, result)
 }

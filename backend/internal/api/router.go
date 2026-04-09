@@ -159,6 +159,25 @@ func NewRouter(cfg Config) http.Handler {
 			// Billing (Phase 2)
 			r.Post("/billing/checkout", h.GetCheckoutURL)
 			r.Get("/orgs/me/usage", h.GetOrgUsage)
+
+			// Phase 3: Dynamic secrets
+			r.Get("/projects/{pid}/envs/{eid}/dynamic", h.ListDynamicConfigs)
+			r.Post("/projects/{pid}/envs/{eid}/dynamic", h.CreateDynamicConfig)
+			r.Delete("/dynamic/{cfgid}", h.DeleteDynamicConfig)
+			r.Post("/dynamic/{cfgid}/generate", h.GenerateDynamicSecret)
+			r.Post("/dynamic/leases/{lid}/revoke", h.RevokeDynamicLease)
+			r.Get("/orgs/me/dynamic/leases", h.ListDynamicLeases)
+
+			// Phase 3: Analytics
+			r.Get("/orgs/me/analytics/heatmap", h.GetSecretHeatmap)
+			r.Get("/orgs/me/analytics/unused", h.GetUnusedSecrets)
+			r.Get("/secrets/{sid}/analytics", h.GetSecretTimeSeries)
+
+			// Phase 3: CI/CD integrations
+			r.Get("/projects/{pid}/envs/{eid}/cicd-snippet", h.GetCICDSnippet)
+			r.Post("/orgs/me/integrations", h.CreateIntegrationConfig)
+			r.Get("/orgs/me/integrations", h.ListIntegrationConfigs)
+			r.Delete("/orgs/me/integrations/{iid}", h.DeleteIntegrationConfig)
 		})
 
 		// SDK/API token routes

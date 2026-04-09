@@ -17,7 +17,9 @@ import (
 	"github.com/nan0/backend/internal/api"
 	"github.com/nan0/backend/internal/cache"
 	"github.com/nan0/backend/internal/crypto"
+	"github.com/nan0/backend/internal/dynamic"
 	"github.com/nan0/backend/internal/email"
+	"github.com/nan0/backend/internal/model"
 	"github.com/nan0/backend/internal/rotation"
 	"github.com/nan0/backend/internal/store"
 	"github.com/nan0/backend/internal/ws"
@@ -121,6 +123,20 @@ func main() {
 			log.Fatalf("Server error: %v", err)
 		}
 	}()
+
+	// Phase 3: Start dynamic secret lease reaper
+	go dynamic.ExpiredLeaseReaper(context.Background(),
+		func(ctx context.Context) ([]*model.DynamicSecretLease, error) {
+			return db.ListExpiredLeases(ctx)
+		},
+		func(ctx context.Context, l *model.DynamicSecretLease) error {
+			// Attempt revocation from the DB backend
+			if l.Backend == "postgres" {
+				_ = dynamic.RevokePostgresLease(ctx, l.DatabaseURL, l.Username)
+			}
+			return db.RevokeLease(ctx, l.ID)
+		},
+	)
 
 	<-quit
 	log.Println("Shutting down server...")
