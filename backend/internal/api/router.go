@@ -122,6 +122,7 @@ func NewRouter(cfg Config) http.Handler {
 	}
 
 	jwtAuth := middleware.AuthMiddleware(cfg.JWTSecret, cfg.SupabaseURL, cfg.DB)
+	flexAuth := middleware.FlexAuthMiddleware(cfg.JWTSecret, cfg.SupabaseURL, cfg.DB)
 
 	// Plan-gating middleware shortcuts
 	starterGate := requirePlan(cfg.DB, model.PlanStarter)
@@ -142,9 +143,9 @@ func NewRouter(cfg Config) http.Handler {
 		r.With(jwtAuth).Get("/orgs/me", h.GetMyOrg)
 		r.With(jwtAuth).Get("/me", h.GetMe)
 
-		// Protected routes (require JWT + org)
+		// Protected routes (require auth + org) — accepts both JWT and API token
 		r.Group(func(r chi.Router) {
-			r.Use(jwtAuth)
+			r.Use(flexAuth)
 			r.Use(middleware.RequireOrg)
 
 			// ── Core (all plans) ──
@@ -167,10 +168,13 @@ func NewRouter(cfg Config) http.Handler {
 			r.Post("/tokens", h.CreateAPIToken)
 			r.Delete("/tokens/{tid}", h.RevokeAPIToken)
 
-			// ── Secret sharing (all plans) ──
-			r.Post("/share", h.CreateSharedSecret)
-			r.Get("/share", h.ListSharedSecrets)
-			r.Delete("/share/{shareId}", h.DeleteSharedSecret)
+			// ── Secret sharing (Starter+) ──
+			r.Group(func(r chi.Router) {
+				r.Use(starterGate)
+				r.Post("/share", h.CreateSharedSecret)
+				r.Get("/share", h.ListSharedSecrets)
+				r.Delete("/share/{shareId}", h.DeleteSharedSecret)
+			})
 
 			// ── Billing (all plans) ──
 			r.Post("/billing/subscribe", h.CreateSubscription)

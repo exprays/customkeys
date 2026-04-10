@@ -122,6 +122,75 @@ func APITokenMiddleware(db *store.Store) func(http.Handler) http.Handler {
 	}
 }
 
+// FlexAuthMiddleware tries Supabase JWT first; if that fails, falls back to
+// API token validation. This allows both browser (JWT) and CLI (API token)
+// callers to access the same routes.
+func FlexAuthMiddleware(jwtSecret, supabaseURL string, db *store.Store) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			tokenStr := extractBearerToken(r)
+			if tokenStr == "" {
+				respond.Error(w, http.StatusUnauthorized, "missing authorization token")
+				return
+			}
+
+			// ── Attempt 1: Supabase JWT ──
+			claims, jwtErr := verifySupabaseJWT(tokenStr, jwtSecret, supabaseURL)
+			if jwtErr == nil && claims != nil {
+				userID, err := uuid.Parse(claims.Subject)
+				if err != nil {
+					respond.Error(w, http.StatusUnauthorized, "invalid user ID in token")
+					return
+				}
+				email, _ := claims.Extra["email"].(string)
+
+				user, err := db.GetUserByID(r.Context(), userID)
+				if err != nil || user == nil {
+					user, err = db.UpsertUser(r.Context(), userID, email, nil, model.RoleOwner)
+					if err != nil {
+						respond.Error(w, http.StatusInternalServerError, "failed to provision user")
+						return
+					}
+				}
+
+				ctx := context.WithValue(r.Context(), model.CtxUserID, userID)
+				ctx = context.WithValue(ctx, model.CtxEmail, email)
+				if user.OrgID != nil {
+					ctx = context.WithValue(ctx, model.CtxOrgID, *user.OrgID)
+				}
+				ctx = context.WithValue(ctx, model.CtxRole, user.Role)
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
+
+			// ── Attempt 2: API token ──
+			tokenHash := crypto.HashToken(tokenStr)
+			token, err := db.GetAPITokenByHash(r.Context(), tokenHash)
+			if err != nil || token == nil {
+				respond.Error(w, http.StatusUnauthorized, "invalid token")
+				return
+			}
+
+			go func() {
+				_ = db.TouchAPIToken(context.Background(), token.ID)
+			}()
+
+			user, err := db.GetUserByID(r.Context(), token.UserID)
+			if err != nil || user == nil {
+				respond.Error(w, http.StatusUnauthorized, "token user not found")
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), model.CtxUserID, token.UserID)
+			if user.OrgID != nil {
+				ctx = context.WithValue(ctx, model.CtxOrgID, *user.OrgID)
+			}
+			ctx = context.WithValue(ctx, model.CtxRole, user.Role)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
 // RequireOrg ensures the user has an org. Used after AuthMiddleware.
 func RequireOrg(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

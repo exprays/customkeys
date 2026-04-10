@@ -123,80 +123,107 @@ authCommand
           res.writeHead(200, { 'Content-Type': 'text/html' });
           res.end(`
             <!DOCTYPE html>
-            <html>
+            <html lang="en">
               <head>
                 <meta charset="utf-8">
-                <title>Authentication Complete</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Authentication Integral</title>
                 <style>
+                  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@900&family=Inconsolata:wght@700;900&display=swap');
+                  
                   body {
                     margin: 0; padding: 0;
-                    background-color: #000000;
-                    color: #ffffff;
+                    background-color: #faff69;
+                    color: #000000;
                     height: 100vh;
                     display: flex; align-items: center; justify-content: center;
-                    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-                  }
-                  .box {
-                    max-width: 480px; width: 100%;
-                    background-color: #0a0a0a;
-                    border: 1px solid #1a1a1a;
-                    border-radius: 4px;
+                    font-family: 'Inter', sans-serif;
                     overflow: hidden;
-                    text-align: left;
                   }
-                  .header {
-                    background-color: #000000;
-                    padding: 24px 32px;
-                    border-bottom: 2px solid #faff69;
-                    display: flex; align-items: center;
+                  .watermark {
+                    position: absolute;
+                    inset: 0;
+                    display: flex; align-items: center; justify-content: center;
+                    pointer-events: none; user-select: none;
+                    font-size: 25vw; font-weight: 900; color: rgba(0,0,0,0.08);
+                    letter-spacing: -0.05em; line-height: 1; z-index: 0;
+                  }
+                  .logo {
+                    position: absolute; top: 48px; left: 48px;
+                    display: flex; align-items: center; gap: 12px; z-index: 10;
                   }
                   .logo-box {
-                    display: inline-block;
                     width: 32px; height: 32px;
-                    background-color: #faff69; color: #000000;
-                    font-weight: 900; font-size: 16px; line-height: 32px; text-align: center;
-                    border-radius: 2px;
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+                    background-color: #000000; border-radius: 4px;
+                    display: flex; align-items: center; justify-content: center;
                   }
-                  .brand-text {
-                    color: #ffffff; font-weight: 900; font-size: 20px;
-                    text-transform: uppercase; letter-spacing: -0.05em; margin-left: 12px;
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+                  .logo-text {
+                    font-weight: 900; text-transform: uppercase; font-size: 20px; letter-spacing: -0.05em;
                   }
                   .content {
-                    padding: 40px 32px;
-                    position: relative;
+                    position: relative; z-index: 10; text-align: center; max-width: 480px;
                   }
+                  .status-pill {
+                    display: inline-flex; align-items: center; gap: 12px;
+                    background-color: #000000; color: #faff69;
+                    padding: 8px 24px; border-radius: 9999px;
+                    font-size: 12px; font-weight: 900; text-transform: uppercase;
+                    letter-spacing: 0.3em; margin-bottom: 48px;
+                  }
+                  .status-dot {
+                    width: 8px; height: 8px; border-radius: 50%; background-color: #faff69;
+                    box-shadow: 0 0 8px #faff69; animation: pulse 2s infinite;
+                  }
+                  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
                   h1 {
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-                    font-size: 24px; font-weight: 900; margin: 0 0 16px 0; text-transform: uppercase; letter-spacing: -0.02em;
+                    font-size: 64px; font-weight: 900; line-height: 0.95;
+                    margin: 0 0 24px 0; text-transform: uppercase; letter-spacing: -0.02em;
+                  }
+                  .divider {
+                    height: 2px; width: 64px; background-color: rgba(0,0,0,0.1);
+                    margin: 0 auto 32px auto;
                   }
                   p {
-                    font-size: 14px; line-height: 1.6; color: #888888; margin: 0;
-                  }
-                  .terminal {
-                    background-color: #000000;
-                    border: 1px solid #1a1a1a; padding: 16px; border-radius: 2px;
-                    margin-top: 24px; color: #faff69; font-size: 12px; font-weight: bold;
+                    font-size: 11px; font-weight: 700; line-height: 1.6;
+                    color: rgba(0,0,0,0.6); text-transform: uppercase;
+                    letter-spacing: 0.2em; max-width: 320px; margin: 0 auto;
+                    background-color: rgba(0,0,0,0.03); padding: 16px; border: 2px solid rgba(0,0,0,0.05);
+                    border-radius: 8px;
                   }
                 </style>
               </head>
               <body>
-                <div class="box">
-                  <div class="header">
-                    <div class="logo-box">ck</div>
-                    <div class="brand-text">CUSTOMKEYS</div>
+                <div class="watermark">SECURE</div>
+                
+                <div class="logo">
+                  <div class="logo-box">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#faff69" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                   </div>
-                  <div class="content">
-                    <h1>Identity Verified</h1>
-                    <p>Cryptographic handshake complete. Your CLI session is now actively tethered to your workspace.</p>
-                    <div class="terminal">
-                      > Connection established.<br>
-                      > You may safely close this transmission.
-                    </div>
-                  </div>
+                  <div class="logo-text">CustomKeys</div>
                 </div>
-                <script>window.setTimeout(() => window.close(), 3000)</script>
+
+                <div class="content">
+                  <div class="status-pill">
+                    <div class="status-dot"></div>
+                    Handshake Integral
+                    <div class="status-dot"></div>
+                  </div>
+                  <h1>CLI<br>Authenticated</h1>
+                  <div class="divider"></div>
+                  <p>Vault parameters successfully synced. Connection established. Return to terminal environment to continue.</p>
+                </div>
+
+                <div style="position: absolute; bottom: 48px; left: 48px; right: 48px; display: flex; justify-content: space-between; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 32px;">
+                   <div style="display: flex; flex-direction: column;">
+                      <span style="font-size: 9px; font-weight: 900; color: rgba(0,0,0,0.3); text-transform: uppercase; letter-spacing: 0.1em;">Local Port</span>
+                      <span style="font-family: 'Inconsolata', monospace; font-size: 12px; font-weight: 700; text-transform: uppercase;">\${port}</span>
+                   </div>
+                   <div style="display: flex; flex-direction: column; text-align: right;">
+                      <span style="font-size: 9px; font-weight: 900; color: rgba(0,0,0,0.3); text-transform: uppercase; letter-spacing: 0.1em;">Status</span>
+                      <span style="font-family: 'Inconsolata', monospace; font-size: 12px; font-weight: 700; text-transform: uppercase;">READY_SYNCHRONIZED</span>
+                   </div>
+                </div>
+                <script>window.setTimeout(() => window.close(), 5000)</script>
               </body>
             </html>
           `);

@@ -20,6 +20,7 @@ type PlanLimits struct {
 	WebSocket        bool // cache invalidation via websocket
 	EmailInvites     bool // team invitations
 	MFAEnforcement   bool // require MFA
+	SecretSharing    bool // shareable secret links
 }
 
 var planLimitsMap = map[model.PlanTier]PlanLimits{
@@ -40,6 +41,7 @@ var planLimitsMap = map[model.PlanTier]PlanLimits{
 		WebSocket:        false,
 		EmailInvites:     false,
 		MFAEnforcement:   false,
+		SecretSharing:    false,
 	},
 	model.PlanStarter: {
 		MaxSecrets:       0, // unlimited
@@ -58,6 +60,7 @@ var planLimitsMap = map[model.PlanTier]PlanLimits{
 		WebSocket:        true,
 		EmailInvites:     true,
 		MFAEnforcement:   true,
+		SecretSharing:    true,
 	},
 	model.PlanBusiness: {
 		MaxSecrets:       0, // unlimited
@@ -76,6 +79,7 @@ var planLimitsMap = map[model.PlanTier]PlanLimits{
 		WebSocket:        true,
 		EmailInvites:     true,
 		MFAEnforcement:   true,
+		SecretSharing:    true,
 	},
 	model.PlanEnterprise: {
 		MaxSecrets:       0,
@@ -94,6 +98,7 @@ var planLimitsMap = map[model.PlanTier]PlanLimits{
 		WebSocket:        true,
 		EmailInvites:     true,
 		MFAEnforcement:   true,
+		SecretSharing:    true,
 	},
 }
 
