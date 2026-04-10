@@ -444,4 +444,122 @@ program
     }
   });
 
+// ── Phase 4: pull command ─────────────────────────────────────────────────
+program
+  .command('pull')
+  .description('Pull all secrets from a project environment into .env.customkeys')
+  .option('-p, --project <projectId>', 'Project ID (skip selection)')
+  .option('-e, --env <envName>', 'Environment name (skip selection)')
+  .action(async (options) => {
+    const cfg = await getConfig();
+    if (!cfg.token) {
+      console.error(chalk.red('[ ERR ]') + ' Authentication required. Run `customkeys auth login`.');
+      process.exit(1);
+    }
+
+    console.log(chalk.voltBg(' PULL ') + chalk.bold(' Initiating secure environment sync...'));
+
+    // Step 1: Select project
+    let projectId = options.project;
+    let projectName = '';
+
+    if (!projectId) {
+      const res = await apiRequest('/v1/projects');
+      const projects = res?.projects || res;
+      if (!projects || !Array.isArray(projects) || projects.length === 0) {
+        console.error(chalk.red('[ ERR ]') + ' Zero active projects identified. Please instantiate on the dashboard.');
+        process.exit(1);
+      }
+
+      const { select } = require('@inquirer/prompts');
+      projectId = await select({
+        message: chalk.volt('Select project to pull from:'),
+        choices: projects.map(p => ({
+          name: chalk.bold(p.name) + chalk.dim(` (${p.slug})`),
+          value: p.id
+        }))
+      });
+      projectName = projects.find(p => p.id === projectId)?.name || '';
+    }
+
+    // Step 2: Select environment
+    let envId;
+    let envName = options.env || '';
+
+    const envRes = await apiRequest(`/v1/projects/${projectId}/envs`);
+    const envs = envRes?.environments || envRes;
+    if (!envs || !Array.isArray(envs) || envs.length === 0) {
+      console.error(chalk.red('[ ERR ]') + ' No environments detected in this project boundary.');
+      process.exit(1);
+    }
+
+    if (envName) {
+      const env = envs.find(e => e.name === envName || e.slug === envName);
+      if (!env) {
+        console.error(chalk.red('[ ERR ]') + ` Environment '${envName}' not found in project.`);
+        process.exit(1);
+      }
+      envId = env.id;
+      envName = env.name;
+    } else {
+      const { select } = require('@inquirer/prompts');
+      const envChoice = await select({
+        message: chalk.volt('Select environment to pull:'),
+        choices: envs.map(e => ({
+          name: chalk.bold(e.name) + (e.is_protected ? chalk.red(' [SECURED]') : ''),
+          value: { id: e.id, name: e.name }
+        }))
+      });
+      envId = envChoice.id;
+      envName = envChoice.name;
+    }
+
+    console.log(chalk.dim(`[ SYS ] Fetching encrypted payloads from [${envName}]...`));
+
+    // Step 3: Fetch all secrets using BulkPullSecrets endpoint
+    const secrets = await apiRequest(`/v1/envs/${envId}/secrets/values`);
+
+    if (!secrets || typeof secrets !== 'object') {
+      console.error(chalk.red('[ ERR ]') + ' Failed to retrieve secrets from vault.');
+      process.exit(1);
+    }
+
+    const keys = Object.keys(secrets);
+    if (keys.length === 0) {
+      console.log(chalk.dim('[ SYS ] No secrets found in this environment.'));
+      return;
+    }
+
+    // Step 4: Write .env.customkeys file
+    const envFilePath = path.join(process.cwd(), '.env.customkeys');
+    const header = [
+      `# CustomKeys Environment Variables`,
+      `# Project: ${projectName || projectId}`,
+      `# Environment: ${envName}`,
+      `# Generated: ${new Date().toISOString()}`,
+      `# WARNING: This file contains sensitive data. Do NOT commit to version control.`,
+      ``,
+    ].join('\n');
+
+    const envContent = keys.map(key => `${key}=${secrets[key]}`).join('\n');
+    await fs.writeFile(envFilePath, header + envContent + '\n');
+
+    console.log(chalk.volt('[ OK ]') + ` ${keys.length} secrets exported to ${chalk.bold('.env.customkeys')}`);
+    console.log(chalk.dim(`[ SYS ] File: ${envFilePath}`));
+
+    // Ensure .gitignore includes .env.customkeys
+    const gitignorePath = path.join(process.cwd(), '.gitignore');
+    try {
+      const gitignore = await fs.readFile(gitignorePath, 'utf-8');
+      if (!gitignore.includes('.env.customkeys')) {
+        await fs.appendFile(gitignorePath, '\n.env.customkeys\n');
+        console.log(chalk.dim('[ SYS ] Added .env.customkeys to .gitignore'));
+      }
+    } catch {
+      // No .gitignore exists — create one
+      await fs.writeFile(gitignorePath, '.env.customkeys\n');
+      console.log(chalk.dim('[ SYS ] Created .gitignore with .env.customkeys entry'));
+    }
+  });
+
 program.parse(process.argv);

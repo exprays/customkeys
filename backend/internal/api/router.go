@@ -131,6 +131,9 @@ func NewRouter(cfg Config) http.Handler {
 		// Public webhook — no auth (verified by signature)
 		r.Post("/webhooks/razorpay", h.RazorpayWebhook)
 
+		// Public share link — no auth required
+		r.Get("/share/{shareId}", h.GetSharedSecret)
+
 		// Invitation accept (needs JWT but no org)
 		r.With(jwtAuth).Get("/invitations/accept", h.AcceptInvitation)
 
@@ -163,6 +166,11 @@ func NewRouter(cfg Config) http.Handler {
 			r.Get("/tokens", h.ListAPITokens)
 			r.Post("/tokens", h.CreateAPIToken)
 			r.Delete("/tokens/{tid}", h.RevokeAPIToken)
+
+			// ── Secret sharing (all plans) ──
+			r.Post("/share", h.CreateSharedSecret)
+			r.Get("/share", h.ListSharedSecrets)
+			r.Delete("/share/{shareId}", h.DeleteSharedSecret)
 
 			// ── Billing (all plans) ──
 			r.Post("/billing/subscribe", h.CreateSubscription)

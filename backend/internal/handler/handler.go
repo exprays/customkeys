@@ -45,10 +45,26 @@ func getRole(r *http.Request) model.Role {
 }
 
 func clientIP(r *http.Request) string {
-	if ip := r.Header.Get("X-Forwarded-For"); ip != "" {
-		return strings.Split(ip, ",")[0]
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		ip := strings.TrimSpace(strings.Split(xff, ",")[0])
+		return ip
 	}
-	return r.RemoteAddr
+	if xri := r.Header.Get("X-Real-Ip"); xri != "" {
+		return strings.TrimSpace(xri)
+	}
+	// RemoteAddr is host:port — strip the port
+	addr := r.RemoteAddr
+	if idx := strings.LastIndex(addr, ":"); idx != -1 {
+		// Check it's not an IPv6 without brackets
+		if strings.Contains(addr, "]") || !strings.Contains(addr, ".") {
+			// IPv6 with brackets like [::1]:port
+			if bi := strings.LastIndex(addr, "]:"); bi != -1 {
+				return addr[1:bi]
+			}
+		}
+		return addr[:idx]
+	}
+	return addr
 }
 
 // Org handlers

@@ -300,3 +300,21 @@ type IntegrationConfig struct {
 	CreatedBy  uuid.UUID           `json:"created_by" db:"created_by"`
 	CreatedAt  time.Time           `json:"created_at" db:"created_at"`
 }
+
+// ── Phase 4: Secret Sharing ──────────────────────────────────────────────────
+
+type SharedSecret struct {
+	ID           uuid.UUID `json:"id" db:"id"`
+	OrgID        uuid.UUID `json:"org_id" db:"org_id"`
+	CreatedBy    uuid.UUID `json:"created_by" db:"created_by"`
+	Label        string    `json:"label" db:"label"`
+	SecretsEnc   string    `json:"-" db:"secrets_enc"`        // encrypted
+	EncryptedDEK string    `json:"-" db:"encrypted_dek"`      // envelope key
+	ExpiresAt    time.Time `json:"expires_at" db:"expires_at"`
+	MaxViews     int       `json:"max_views" db:"max_views"`
+	ViewCount    int       `json:"view_count" db:"view_count"`
+	CreatedAt    time.Time `json:"created_at" db:"created_at"`
+	// Only set on retrieval (decrypted)
+	Secrets map[string]string `json:"secrets,omitempty"`
+}
+
