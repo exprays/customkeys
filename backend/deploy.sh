@@ -15,6 +15,16 @@ docker build -t "$IMAGE" .
 echo "📤 Pushing to Google Container Registry..."
 docker push "$IMAGE"
 
+echo "📝 Loading environment variables from .env..."
+if [ -f .env ]; then
+  # Read .env, ignore comments/empty lines, and join with commas
+  # We use sed to handle potential spaces and ensure proper formatting
+  ENV_VARS=$(grep -v '^#' .env | grep -v '^$' | xargs | tr ' ' ',')
+else
+  echo "⚠️ .env file not found, using default APP_ENV=production"
+  ENV_VARS="APP_ENV=production"
+fi
+
 echo "🚀 Deploying to Cloud Run..."
 gcloud run deploy "$SERVICE_NAME" \
   --image "$IMAGE" \
@@ -26,7 +36,7 @@ gcloud run deploy "$SERVICE_NAME" \
   --cpu 1 \
   --min-instances 0 \
   --max-instances 10 \
-  --set-env-vars "APP_ENV=production" \
+  --set-env-vars "$ENV_VARS" \
   --project "$PROJECT_ID"
 
 echo "✅ Deployed! Service URL:"
