@@ -28,8 +28,17 @@ func New(databaseURL string) (*Store, error) {
 
 	cfg.MaxConns = 10
 	cfg.MinConns = 2
-	// Required for PgBouncer transaction mode
+
+	// ── PgBouncer transaction-mode compatibility ──
+	// PgBouncer in transaction mode reassigns server connections between
+	// transactions. pgx's prepared statement cache creates statements on
+	// the server, but after PgBouncer reassigns, those statements don't
+	// exist on the new server connection → "already exists" errors.
+	//
+	// Fix: Use simple protocol (no prepared statements) AND disable all caches.
 	cfg.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+	cfg.ConnConfig.StatementCacheCapacity = 0
+	cfg.ConnConfig.DescriptionCacheCapacity = 0
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), cfg)
 	if err != nil {
