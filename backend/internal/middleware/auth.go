@@ -56,6 +56,18 @@ func AuthMiddleware(jwtSecret, supabaseURL string, db *store.Store) func(http.Ha
 			}
 
 			email := claims.Email
+			if email == "" {
+				// Fallback to user_metadata
+				if metaEmail, ok := claims.UserMetadata["email"].(string); ok {
+					email = metaEmail
+				}
+			}
+
+			if email == "" {
+				fmt.Printf("CRITICAL: No email found in JWT for user %s\n", userID)
+				respond.Error(w, http.StatusUnauthorized, "email required but missing from token")
+				return
+			}
 
 			// Load or create user in our DB
 			user, err := db.GetUserByID(r.Context(), userID)
@@ -154,6 +166,17 @@ func FlexAuthMiddleware(jwtSecret, supabaseURL string, db *store.Store) func(htt
 					return
 				}
 				email := claims.Email
+				if email == "" {
+					if metaEmail, ok := claims.UserMetadata["email"].(string); ok {
+						email = metaEmail
+					}
+				}
+
+				if email == "" {
+					fmt.Printf("CRITICAL: No email found in JWT for user %s\n", userID)
+					respond.Error(w, http.StatusUnauthorized, "email required but missing from token")
+					return
+				}
 
 				user, err := db.GetUserByID(r.Context(), userID)
 				if err != nil || user == nil {
@@ -246,7 +269,9 @@ func RequireRole(minRole model.Role) func(http.Handler) http.Handler {
 // SupabaseClaims represents the JWT claims from Supabase.
 type SupabaseClaims struct {
 	jwt.RegisteredClaims
-	Email string `json:"email"`
+	Email        string                 `json:"email"`
+	UserMetadata map[string]interface{} `json:"user_metadata"`
+	RawClaims    map[string]interface{} `json:"-"`
 }
 
 
@@ -279,7 +304,15 @@ func verifySupabaseJWT(tokenStr, secret, supabaseURL string) (*SupabaseClaims, e
 		return nil, err
 	}
 
-	// The claims are already in the claims variable passed to ParseWithClaims
+	// Extract all claims into RawClaims for manual searching if needed
+	if mapClaims, ok := token.Claims.(jwt.MapClaims); ok {
+		claims.RawClaims = mapClaims
+	} else if sm, ok := token.Claims.(*SupabaseClaims); ok {
+		// If parsed into our struct, trying to get raw map is harder, 
+		// but we already have the fields we mapped.
+		_ = sm 
+	}
+
 	return claims, nil
 }
 
