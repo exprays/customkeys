@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/nan0/backend/internal/crypto"
@@ -44,7 +45,7 @@ func AuthMiddleware(jwtSecret, supabaseURL string, db *store.Store) func(http.Ha
 
 			claims, err := verifySupabaseJWT(tokenStr, jwtSecret, supabaseURL)
 			if err != nil {
-				fmt.Printf("JWT Verification Error: %v\n", err)
+				sentry.CaptureException(fmt.Errorf("JWT Verification Error: %v", err))
 				respond.Error(w, http.StatusUnauthorized, "invalid token")
 				return
 			}
@@ -64,7 +65,7 @@ func AuthMiddleware(jwtSecret, supabaseURL string, db *store.Store) func(http.Ha
 			}
 
 			if email == "" {
-				fmt.Printf("CRITICAL: No email found in JWT for user %s\n", userID)
+				sentry.CaptureMessage(fmt.Sprintf("CRITICAL: No email found in JWT for user %s", userID))
 				respond.Error(w, http.StatusUnauthorized, "email required but missing from token")
 				return
 			}
@@ -73,18 +74,31 @@ func AuthMiddleware(jwtSecret, supabaseURL string, db *store.Store) func(http.Ha
 			user, err := db.GetUserByID(r.Context(), userID)
 			if err != nil || user == nil {
 				// Auto-provision user on first login
+				sentry.CaptureMessage(fmt.Sprintf("AUTO-PROVISION: Creating user %s with email %s", userID, email))
 				user, err = db.UpsertUser(r.Context(), userID, email, nil, model.RoleOwner)
 				if err != nil {
+					sentry.CaptureException(fmt.Errorf("AUTO-PROVISION ERROR: UpsertUser failed for %s: %v", userID, err))
 					respond.Error(w, http.StatusInternalServerError, "failed to provision user")
 					return
+				}
+			} else {
+				// Update email or touch last_login_at if needed
+				shouldTouch := user.Email != email || user.Email == "" || user.LastLoginAt == nil || time.Since(*user.LastLoginAt) > 1*time.Hour
+				if shouldTouch {
+					user, _ = db.UpsertUser(r.Context(), userID, email, user.OrgID, user.Role)
 				}
 			}
 
 			// ── Auto-provision Organization if missing ──
 			if user.OrgID == nil {
+				sentry.CaptureMessage(fmt.Sprintf("AUTO-PROVISION: Creating org for user %s (%s)", userID, email))
 				org, err := db.CreateOrganization(r.Context(), "Personal", model.PlanFree)
-				if err == nil {
-					if err := db.UpdateUserOrg(r.Context(), user.ID, org.ID, model.RoleOwner); err == nil {
+				if err != nil {
+					sentry.CaptureException(fmt.Errorf("AUTO-PROVISION ERROR: CreateOrganization failed for user %s: %v", userID, err))
+				} else {
+					if err := db.UpdateUserOrg(r.Context(), user.ID, org.ID, model.RoleOwner); err != nil {
+						sentry.CaptureException(fmt.Errorf("AUTO-PROVISION ERROR: UpdateUserOrg failed for user %s, org %s: %v", userID, org.ID, err))
+					} else {
 						user.OrgID = &org.ID
 						user.Role = model.RoleOwner
 					}
@@ -173,25 +187,38 @@ func FlexAuthMiddleware(jwtSecret, supabaseURL string, db *store.Store) func(htt
 				}
 
 				if email == "" {
-					fmt.Printf("CRITICAL: No email found in JWT for user %s\n", userID)
+					sentry.CaptureMessage(fmt.Sprintf("CRITICAL: No email found in JWT for user %s", userID))
 					respond.Error(w, http.StatusUnauthorized, "email required but missing from token")
 					return
 				}
 
 				user, err := db.GetUserByID(r.Context(), userID)
 				if err != nil || user == nil {
+					sentry.CaptureMessage(fmt.Sprintf("FLEX AUTO-PROVISION: Creating user %s with email %s", userID, email))
 					user, err = db.UpsertUser(r.Context(), userID, email, nil, model.RoleOwner)
 					if err != nil {
+						sentry.CaptureException(fmt.Errorf("FLEX AUTO-PROVISION ERROR: UpsertUser failed for %s: %v", userID, err))
 						respond.Error(w, http.StatusInternalServerError, "failed to provision user")
 						return
+					}
+				} else {
+					// Update email or touch last_login_at if needed
+					shouldTouch := user.Email != email || user.Email == "" || user.LastLoginAt == nil || time.Since(*user.LastLoginAt) > 1*time.Hour
+					if shouldTouch {
+						user, _ = db.UpsertUser(r.Context(), userID, email, user.OrgID, user.Role)
 					}
 				}
 
 				// ── Auto-provision Organization if missing ──
 				if user.OrgID == nil {
+					sentry.CaptureMessage(fmt.Sprintf("FLEX AUTO-PROVISION: Creating org for user %s (%s)", userID, email))
 					org, err := db.CreateOrganization(r.Context(), "Personal", model.PlanFree)
-					if err == nil {
-						if err := db.UpdateUserOrg(r.Context(), user.ID, org.ID, model.RoleOwner); err == nil {
+					if err != nil {
+						sentry.CaptureException(fmt.Errorf("FLEX AUTO-PROVISION ERROR: CreateOrganization failed for user %s: %v", userID, err))
+					} else {
+						if err := db.UpdateUserOrg(r.Context(), user.ID, org.ID, model.RoleOwner); err != nil {
+							sentry.CaptureException(fmt.Errorf("FLEX AUTO-PROVISION ERROR: UpdateUserOrg failed for user %s, org %s: %v", userID, org.ID, err))
+						} else {
 							user.OrgID = &org.ID
 							user.Role = model.RoleOwner
 						}

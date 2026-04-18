@@ -3,6 +3,8 @@ package respond
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/getsentry/sentry-go"
 )
 
 type errorResponse struct {
@@ -33,8 +35,22 @@ func Created(w http.ResponseWriter, data interface{}) {
 	JSON(w, http.StatusCreated, data)
 }
 
-// Error writes an RFC 9457-style error response.
+// Error writes an RFC 9457-style error response and reports to Sentry.
 func Error(w http.ResponseWriter, status int, message string) {
+	// Report to Sentry
+	if hub := sentry.CurrentHub(); hub != nil {
+		if status >= 500 {
+			hub.CaptureMessage("Backend Error: " + message)
+		} else if status >= 400 {
+			// Optional: client errors could be breadcrumbs or low-priority
+			sentry.AddBreadcrumb(&sentry.Breadcrumb{
+				Category: "auth",
+				Message:  "Client Error (" + http.StatusText(status) + "): " + message,
+				Level:    sentry.LevelInfo,
+			})
+		}
+	}
+
 	JSON(w, status, errorResponse{
 		Error:   http.StatusText(status),
 		Message: message,

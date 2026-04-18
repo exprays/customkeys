@@ -43,11 +43,12 @@ func (s *Store) GetUserByEmail(ctx context.Context, email string) (*model.User, 
 func (s *Store) UpsertUser(ctx context.Context, id uuid.UUID, email string, orgID *uuid.UUID, role model.Role) (*model.User, error) {
 	u := &model.User{}
 	err := s.pool.QueryRow(ctx, `
-		INSERT INTO users (id, org_id, email, role)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO users (id, org_id, email, role, last_login_at)
+		VALUES ($1, $2, $3, $4, NOW())
 		ON CONFLICT (id) DO UPDATE SET
-			email = EXCLUDED.email,
+			email = COALESCE(NULLIF(EXCLUDED.email, ''), users.email),
 			org_id = COALESCE(users.org_id, EXCLUDED.org_id),
+			last_login_at = NOW(),
 			updated_at = NOW()
 		RETURNING id, org_id, email, role, mfa_enabled, last_login_at, created_at
 	`, id, orgID, email, role).Scan(

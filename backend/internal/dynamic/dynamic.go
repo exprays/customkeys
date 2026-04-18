@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/jackc/pgx/v5"
 	"github.com/nan0/backend/internal/model"
 )
@@ -158,10 +159,13 @@ func ExpiredLeaseReaper(ctx context.Context, leaseFetcher func(ctx context.Conte
 		case <-tick.C:
 			leases, err := leaseFetcher(ctx)
 			if err != nil {
+				sentry.CaptureException(fmt.Errorf("lease reaper: fetcher failed: %w", err))
 				continue
 			}
 			for _, l := range leases {
-				_ = revoker(ctx, l)
+				if err := revoker(ctx, l); err != nil {
+					sentry.CaptureException(fmt.Errorf("lease reaper: revocation failed for %s: %w", l.ID, err))
+				}
 			}
 		}
 	}
