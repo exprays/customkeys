@@ -54,6 +54,7 @@ func (s *Store) UpsertUser(ctx context.Context, id uuid.UUID, email string, orgI
 		&u.ID, &u.OrgID, &u.Email, &u.Role, &u.MFAEnabled, &u.LastLoginAt, &u.CreatedAt,
 	)
 	if err != nil {
+		fmt.Printf("DATABASE ERROR in UpsertUser: %v (ID: %s, Email: %s)\n", err, id, email)
 		return nil, fmt.Errorf("upsert user: %w", err)
 	}
 	return u, nil

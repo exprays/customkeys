@@ -55,7 +55,7 @@ func AuthMiddleware(jwtSecret, supabaseURL string, db *store.Store) func(http.Ha
 				return
 			}
 
-			email, _ := claims.Extra["email"].(string)
+			email := claims.Email
 
 			// Load or create user in our DB
 			user, err := db.GetUserByID(r.Context(), userID)
@@ -65,6 +65,17 @@ func AuthMiddleware(jwtSecret, supabaseURL string, db *store.Store) func(http.Ha
 				if err != nil {
 					respond.Error(w, http.StatusInternalServerError, "failed to provision user")
 					return
+				}
+			}
+
+			// ── Auto-provision Organization if missing ──
+			if user.OrgID == nil {
+				org, err := db.CreateOrganization(r.Context(), "Personal", model.PlanFree)
+				if err == nil {
+					if err := db.UpdateUserOrg(r.Context(), user.ID, org.ID, model.RoleOwner); err == nil {
+						user.OrgID = &org.ID
+						user.Role = model.RoleOwner
+					}
 				}
 			}
 
@@ -142,7 +153,7 @@ func FlexAuthMiddleware(jwtSecret, supabaseURL string, db *store.Store) func(htt
 					respond.Error(w, http.StatusUnauthorized, "invalid user ID in token")
 					return
 				}
-				email, _ := claims.Extra["email"].(string)
+				email := claims.Email
 
 				user, err := db.GetUserByID(r.Context(), userID)
 				if err != nil || user == nil {
@@ -150,6 +161,17 @@ func FlexAuthMiddleware(jwtSecret, supabaseURL string, db *store.Store) func(htt
 					if err != nil {
 						respond.Error(w, http.StatusInternalServerError, "failed to provision user")
 						return
+					}
+				}
+
+				// ── Auto-provision Organization if missing ──
+				if user.OrgID == nil {
+					org, err := db.CreateOrganization(r.Context(), "Personal", model.PlanFree)
+					if err == nil {
+						if err := db.UpdateUserOrg(r.Context(), user.ID, org.ID, model.RoleOwner); err == nil {
+							user.OrgID = &org.ID
+							user.Role = model.RoleOwner
+						}
 					}
 				}
 
@@ -224,15 +246,13 @@ func RequireRole(minRole model.Role) func(http.Handler) http.Handler {
 // SupabaseClaims represents the JWT claims from Supabase.
 type SupabaseClaims struct {
 	jwt.RegisteredClaims
-	Extra map[string]interface{}
+	Email string `json:"email"`
 }
 
-func (c *SupabaseClaims) GetClaimsMap() map[string]interface{} {
-	return c.Extra
-}
+
 
 func verifySupabaseJWT(tokenStr, secret, supabaseURL string) (*SupabaseClaims, error) {
-	claims := &SupabaseClaims{Extra: make(map[string]interface{})}
+	claims := &SupabaseClaims{}
 	token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
 		fmt.Printf("JWT Callback: Alg=%v, Kid=%v\n", t.Method.Alg(), t.Header["kid"])
 		switch t.Method.(type) {
@@ -259,13 +279,7 @@ func verifySupabaseJWT(tokenStr, secret, supabaseURL string) (*SupabaseClaims, e
 		return nil, err
 	}
 
-	// Extract extra claims (email, role etc.) from the raw token
-	if mapClaims, ok := token.Claims.(jwt.MapClaims); ok {
-		for k, v := range mapClaims {
-			claims.Extra[k] = v
-		}
-	}
-
+	// The claims are already in the claims variable passed to ParseWithClaims
 	return claims, nil
 }
 
