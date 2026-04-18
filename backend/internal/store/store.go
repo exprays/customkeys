@@ -28,6 +28,8 @@ func New(databaseURL string) (*Store, error) {
 
 	cfg.MaxConns = 10
 	cfg.MinConns = 2
+	// Required for PgBouncer transaction mode
+	cfg.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), cfg)
 	if err != nil {

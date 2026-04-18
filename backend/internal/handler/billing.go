@@ -67,9 +67,17 @@ func (h *Handler) CreateSubscription(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get current org to preserve plan during 'created' phase
+	org, err := h.Store.GetOrganizationByID(r.Context(), orgID)
+	if err != nil || org == nil {
+		respond.Error(w, http.StatusInternalServerError, "failed to get organization")
+		return
+	}
+
 	// Store the subscription ID on the org immediately (status = created)
+	// IMPORTANT: We do NOT update the plan_tier here. That only happens via webhook on payment.
 	_ = h.Store.UpdateOrgBilling(r.Context(), orgID, sub.CustomerID, sub.ID, rzpPlanID,
-		model.PlanTier(req.PlanTier), billing.GetLimits(model.PlanTier(req.PlanTier)).AuditRetention, "created")
+		org.PlanTier, org.AuditRetentionDays, "created")
 
 	userID, _ := getUserID(r)
 	h.writeAudit(r, orgID, userID, "user", "billing.subscription_created", "organization", &orgID, map[string]any{
