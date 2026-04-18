@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -39,6 +40,10 @@ func New(databaseURL string) (*Store, error) {
 	cfg.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 	cfg.ConnConfig.StatementCacheCapacity = 0
 	cfg.ConnConfig.DescriptionCacheCapacity = 0
+
+	// Also ensure no implicit prepared statements are used by the pool.
+	cfg.MaxConnIdleTime = 5 * time.Minute
+	cfg.MaxConnLifetime = 30 * time.Minute
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), cfg)
 	if err != nil {

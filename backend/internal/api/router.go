@@ -107,7 +107,7 @@ func NewRouter(cfg Config) http.Handler {
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok","service":"customkeys","phase":"8"}`))
+		w.Write([]byte(`{"status":"ok","service":"customkeys","phase":"9"}`))
 	})
 
 	h := &handler.Handler{

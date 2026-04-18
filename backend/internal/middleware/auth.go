@@ -72,9 +72,21 @@ func AuthMiddleware(jwtSecret, supabaseURL string, db *store.Store) func(http.Ha
 
 			// Load or create user in our DB
 			user, err := db.GetUserByID(r.Context(), userID)
-			if err != nil || user == nil {
+			if err != nil {
+				sentry.CaptureException(fmt.Errorf("DB ERROR: GetUserByID failed for %s: %v", userID, err))
+				respond.Error(w, http.StatusInternalServerError, "database error")
+				return
+			}
+
+			if user == nil {
 				// Auto-provision user on first login
-				sentry.CaptureMessage(fmt.Sprintf("AUTO-PROVISION: Creating user %s with email %s", userID, email))
+				if email == "" {
+					sentry.CaptureMessage(fmt.Sprintf("PROVISION FAILED: No email for user %s", userID))
+					respond.Error(w, http.StatusUnauthorized, "email required for provisioning")
+					return
+				}
+
+				sentry.CaptureMessage(fmt.Sprintf("AUTO-PROVISION: Creating user %s (%s)", userID, email))
 				user, err = db.UpsertUser(r.Context(), userID, email, nil, model.RoleOwner)
 				if err != nil {
 					sentry.CaptureException(fmt.Errorf("AUTO-PROVISION ERROR: UpsertUser failed for %s: %v", userID, err))
@@ -84,7 +96,7 @@ func AuthMiddleware(jwtSecret, supabaseURL string, db *store.Store) func(http.Ha
 			} else {
 				// Update email or touch last_login_at if needed
 				shouldTouch := user.Email != email || user.Email == "" || user.LastLoginAt == nil || time.Since(*user.LastLoginAt) > 1*time.Hour
-				if shouldTouch {
+				if shouldTouch && email != "" {
 					user, _ = db.UpsertUser(r.Context(), userID, email, user.OrgID, user.Role)
 				}
 			}
@@ -92,7 +104,12 @@ func AuthMiddleware(jwtSecret, supabaseURL string, db *store.Store) func(http.Ha
 			// ── Auto-provision Organization if missing ──
 			if user.OrgID == nil {
 				sentry.CaptureMessage(fmt.Sprintf("AUTO-PROVISION: Creating org for user %s (%s)", userID, email))
-				org, err := db.CreateOrganization(r.Context(), "Personal", model.PlanFree)
+				orgName := "Personal"
+				if parts := strings.Split(email, "@"); len(parts) > 0 {
+					orgName = fmt.Sprintf("%s's Org", strings.Title(parts[0]))
+				}
+				
+				org, err := db.CreateOrganization(r.Context(), orgName, model.PlanFree)
 				if err != nil {
 					sentry.CaptureException(fmt.Errorf("AUTO-PROVISION ERROR: CreateOrganization failed for user %s: %v", userID, err))
 				} else {
@@ -306,38 +323,34 @@ type SupabaseClaims struct {
 func verifySupabaseJWT(tokenStr, secret, supabaseURL string) (*SupabaseClaims, error) {
 	claims := &SupabaseClaims{}
 	token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
-		fmt.Printf("JWT Callback: Alg=%v, Kid=%v\n", t.Method.Alg(), t.Header["kid"])
 		switch t.Method.(type) {
 		case *jwt.SigningMethodHMAC:
 			if secret == "" {
-				return nil, fmt.Errorf("SUPABASE_JWT_SECRET is required for HMAC tokens")
+				return nil, fmt.Errorf("SUPABASE_JWT_SECRET not configured")
 			}
 			return []byte(secret), nil
 		case *jwt.SigningMethodRSA, *jwt.SigningMethodECDSA:
 			kid, _ := t.Header["kid"].(string)
 			if kid == "" {
-				return nil, fmt.Errorf("token missing kid header")
+				return nil, fmt.Errorf("missing kid in token header")
 			}
 			pubKey, keyErr := getPublicKeyFromJWKS(supabaseURL, kid)
 			if keyErr != nil {
-				return nil, keyErr
+				return nil, fmt.Errorf("JWKS lookup failed: %w", keyErr)
 			}
 			return pubKey, nil
 		default:
-			return nil, jwt.ErrSignatureInvalid
+			return nil, fmt.Errorf("unsupported alg: %v", t.Method.Alg())
 		}
 	})
-	if err != nil || !token.Valid {
+	
+	if err != nil || token == nil || !token.Valid {
 		return nil, err
 	}
 
-	// Extract all claims into RawClaims for manual searching if needed
+	// Extract all claims for context
 	if mapClaims, ok := token.Claims.(jwt.MapClaims); ok {
 		claims.RawClaims = mapClaims
-	} else if sm, ok := token.Claims.(*SupabaseClaims); ok {
-		// If parsed into our struct, trying to get raw map is harder, 
-		// but we already have the fields we mapped.
-		_ = sm 
 	}
 
 	return claims, nil
